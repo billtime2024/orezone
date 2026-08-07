@@ -9,14 +9,14 @@
         content="orezone: Your community sharing platform. Share rides, food, home services, skills, and more. One account, many services — built by the community, for the community.">
     <meta name="keywords"
         content="orezone, community sharing, ride sharing, local services, marketplace, food services, home services, community platform">
-    <meta name="author" content="Themesbrand">
+    <meta name="author" content="orezone">
 
     <!-- Social Media Meta Tags -->
     <meta property="og:title" content="orezone - Community Sharing Platform">
     <meta property="og:description"
         content="Share rides, food, home services, skills, and more. One account, many services — built by the community.">
-    <meta property="og:image" content="URL to the template's logo or featured image">
-    <meta property="og:url" content="URL to the template's webpage">
+    <meta property="og:image" content="https://oruzone.hrtime.in/image/favicon.ico">
+    <meta property="og:url" content="https://oruzone.hrtime.in">
     <meta name="twitter:card" content="summary_large_image">
 
     <!-- App favicon -->

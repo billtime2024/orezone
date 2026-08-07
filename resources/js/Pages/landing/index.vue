@@ -48,12 +48,13 @@ export default {
 
 <template>
     <Head title="orezone - Community Sharing Platform" />
+    <a href="#home" class="visually-hidden-focusable position-absolute top-0 start-0 bg-primary text-white px-3 py-2" style="z-index: 1050;">Skip to main content</a>
 
     <!-- ==================== NAVBAR ==================== -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary sticky-top shadow-sm" :class="{ 'shadow': isScrolled }">
         <div class="container">
             <a class="navbar-brand fw-bold fs-4 text-white" href="#home">orezone</a>
-            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#orezoneNav">
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#orezoneNav" aria-controls="orezoneNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="orezoneNav">
@@ -76,10 +77,12 @@ export default {
         </div>
     </nav>
 
+    <main id="main-content">
+
     <!-- ==================== HERO ==================== -->
     <section id="home" class="bg-primary text-white position-relative overflow-hidden">
         <div class="container py-5 position-relative" style="z-index: 2;">
-            <div class="row align-items-center min-vh-50 py-5">
+            <div class="row align-items-center py-5" style="min-height: 50vh">
                 <div class="col-lg-7 mb-5 mb-lg-0">
                     <div class="badge bg-white text-primary fw-semibold mb-3 px-3 py-2">🚀 Ride Sharing — Now Live!</div>
                     <h1 class="display-3 fw-bold mb-4 lh-1">
@@ -114,7 +117,7 @@ export default {
                     </div>
                 </div>
                 <div class="col-lg-5 text-center">
-                    <div class="bg-white bg-opacity-10 rounded-4 p-5 backdrop-blur">
+                    <div class="bg-white bg-opacity-10 rounded-4 p-5">
                         <div class="row g-3 text-center">
                             <div class="col-4">
                                 <div class="bg-white bg-opacity-10 rounded-3 p-3">
@@ -277,7 +280,7 @@ export default {
                         <div class="bg-primary bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
                             <span class="display-5">📱</span>
                         </div>
-                        <h5 class="fw-bold">Sign Up</h5>
+                        <h3 class="h5 fw-bold">Sign Up</h3>
                         <p class="text-muted small">Create your account with phone verification. One account for all services.</p>
                     </div>
                 </div>
@@ -286,7 +289,7 @@ export default {
                         <div class="bg-success bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
                             <span class="display-5">🔍</span>
                         </div>
-                        <h5 class="fw-bold">Discover</h5>
+                        <h3 class="h5 fw-bold">Discover</h3>
                         <p class="text-muted small">Browse rides, food, services, and more from verified community members.</p>
                     </div>
                 </div>
@@ -295,7 +298,7 @@ export default {
                         <div class="bg-info bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
                             <span class="display-5">🤝</span>
                         </div>
-                        <h5 class="fw-bold">Connect</h5>
+                        <h3 class="h5 fw-bold">Connect</h3>
                         <p class="text-muted small">Book, request, or hire directly. Transparent pricing, no middlemen.</p>
                     </div>
                 </div>
@@ -304,7 +307,7 @@ export default {
                         <div class="bg-warning bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
                             <span class="display-5">⭐</span>
                         </div>
-                        <h5 class="fw-bold">Rate & Trust</h5>
+                        <h3 class="h5 fw-bold">Rate & Trust</h3>
                         <p class="text-muted small">Two-way ratings build trust. Verified profiles keep everyone safe.</p>
                     </div>
                 </div>
@@ -332,7 +335,7 @@ export default {
                             <span class="badge bg-secondary bg-opacity-10 text-secondary small">Coming Soon</span>
                         </div>
                         <div class="display-5 mb-3">{{ service.icon }}</div>
-                        <h6 class="fw-bold mb-1">{{ service.name }}</h6>
+                        <h5 class="h6 fw-bold mb-1">{{ service.name }}</h5>
                         <p class="text-muted small mb-0">{{ service.desc }}</p>
                     </div>
                 </div>
@@ -492,6 +495,8 @@ export default {
         </div>
     </section>
 
+    </main>
+
     <!-- ==================== FOOTER ==================== -->
     <footer class="bg-dark text-white py-5">
         <div class="container py-4">
@@ -554,6 +559,7 @@ export default {
         class="btn btn-primary btn-lg rounded-circle shadow position-fixed bottom-0 end-0 mb-4 me-4"
         style="z-index: 1050; width: 48px; height: 48px; line-height: 32px;"
         @click="scrollToTop"
+        aria-label="Back to top"
         title="Back to top"
     >
         ↑

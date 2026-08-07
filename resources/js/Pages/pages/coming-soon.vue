@@ -1,71 +1,61 @@
 <script>
+import { Head } from '@inertiajs/vue3'
+
 export default {
-  mounted() {
-    // Set the date we're counting down to
-    var countDownDate = new Date("Jan 1, 2023").getTime();
-
-    // Update the count down every 1 second
-    var countDown = setInterval(function () {
-      // Get today's date and time
-      var currentTime = new Date().getTime();
-
-      // Find the distance between currentTime and the count down date
-      var distance = countDownDate - currentTime;
-
-      // Time calculations for days, hours, minutes and seconds
-      var days = Math.floor(distance / (1000 * 60 * 60 * 24));
-      var hours = Math.floor(
-        (distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
-      );
-      var minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-      var seconds = Math.floor((distance % (1000 * 60)) / 1000);
-
-      var countDownBlock =
-        '<div class="countdownlist-item">' +
-        '<div class="count-title">Days</div>' +
-        '<div class="count-num">' +
-        days +
-        "</div>" +
-        "</div>" +
-        '<div class="countdownlist-item">' +
-        '<div class="count-title">Hours</div>' +
-        '<div class="count-num">' +
-        hours +
-        "</div>" +
-        "</div>" +
-        '<div class="countdownlist-item">' +
-        '<div class="count-title">Minutes</div>' +
-        '<div class="count-num">' +
-        minutes +
-        "</div>" +
-        "</div>" +
-        '<div class="countdownlist-item">' +
-        '<div class="count-title">Seconds</div>' +
-        '<div class="count-num">' +
-        seconds +
-        "</div>" +
-        "</div>";
-
-      // Output the result in an element with id="countDownBlock"
-      if (document.getElementById("countdown")) {
-        document.getElementById("countdown").innerHTML = countDownBlock;
-      }
-      // If the count down is over, write some text
-      if (distance < 0) {
-        clearInterval(countDown);
-        document.getElementById("countdown").innerHTML =
-          '<div class="countdown-endtxt">The countdown has ended!</div>';
-      }
-    }, 1000);
+  components: { Head },
+  data() {
+    return {
+      targetDate: new Date('2027-01-01T00:00:00').getTime(),
+      days: 0,
+      hours: 0,
+      minutes: 0,
+      seconds: 0,
+      ended: false,
+      email: '',
+      submitted: false,
+    }
   },
-};
+  mounted() {
+    this.updateCountdown()
+    this.timer = setInterval(this.updateCountdown, 1000)
+  },
+  beforeUnmount() {
+    clearInterval(this.timer)
+  },
+  methods: {
+    updateCountdown() {
+      const now = Date.now()
+      const distance = this.targetDate - now
+      if (distance <= 0) {
+        this.ended = true
+        this.days = 0
+        this.hours = 0
+        this.minutes = 0
+        this.seconds = 0
+        clearInterval(this.timer)
+        return
+      }
+      this.days = Math.floor(distance / (1000 * 60 * 60 * 24))
+      this.hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
+      this.minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60))
+      this.seconds = Math.floor((distance % (1000 * 60)) / 1000)
+    },
+    handleSubmit() {
+      if (this.email) {
+        this.submitted = true
+        this.email = ''
+      }
+    },
+  },
+}
 </script>
 
 <template>
+  <Head title="Coming Soon | Orezone" />
+
   <div class="auth-page-wrapper pt-5">
     <div class="auth-one-bg-position auth-one-bg" id="auth-particles">
       <div class="bg-overlay"></div>
-
       <div class="shape">
         <svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink"
           viewBox="0 0 1440 120">
@@ -79,31 +69,65 @@ export default {
         <BRow>
           <BCol lg="12">
             <div class="text-center mt-sm-5 pt-4 mb-4">
-              <div class="mb-sm-5 pb-sm-4 pb-5">
-                <img src="@assets/images/comingsoon.png" alt="" height="120" class="move-animation" />
+              <div class="mb-4">
+                <h1 class="display-2 coming-soon-text fw-bold">Orezone</h1>
+                <p class="text-muted fs-5">Community Sharing Platform</p>
               </div>
-              <div class="mb-5">
-                <h1 class="display-2 coming-soon-text">Coming Soon</h1>
+
+              <div class="mb-3">
+                <h4 class="coming-soon-text">Coming Soon</h4>
               </div>
-              <div>
-                <BRow class="justify-content-center mt-5">
+
+              <div v-if="!ended" class="mt-4">
+                <BRow class="justify-content-center">
                   <BCol lg="8">
-                    <div id="countdown" class="countdownlist"></div>
+                    <div class="countdownlist d-flex justify-content-center gap-3 flex-wrap">
+                      <div class="countdownlist-item">
+                        <div class="count-title">Days</div>
+                        <div class="count-num">{{ String(days).padStart(2, '0') }}</div>
+                      </div>
+                      <div class="countdownlist-item">
+                        <div class="count-title">Hours</div>
+                        <div class="count-num">{{ String(hours).padStart(2, '0') }}</div>
+                      </div>
+                      <div class="countdownlist-item">
+                        <div class="count-title">Minutes</div>
+                        <div class="count-num">{{ String(minutes).padStart(2, '0') }}</div>
+                      </div>
+                      <div class="countdownlist-item">
+                        <div class="count-title">Seconds</div>
+                        <div class="count-num">{{ String(seconds).padStart(2, '0') }}</div>
+                      </div>
+                    </div>
                   </BCol>
                 </BRow>
+              </div>
 
-                <div class="mt-5">
-                  <h4>Get notified when we launch</h4>
-                  <p class="text-muted">Don't worry we will not spam you 😊</p>
+              <div v-else class="mt-4">
+                <p class="text-success fs-4 fw-semibold">We have launched! 🎉</p>
+              </div>
+
+              <div class="mt-4">
+                <h5>Get notified when we launch</h5>
+                <p class="text-muted">Don't worry, we will not spam you 😊</p>
+
+                <div v-if="submitted" class="alert alert-success mx-auto" style="max-width:420px">
+                  Thanks! We'll notify you at launch.
                 </div>
 
-                <div class="input-group countdown-input-group mx-auto my-4">
-                  <input type="email" class="form-control border-light shadow" placeholder="Enter your email address"
-                    aria-label="search result" aria-describedby="button-email" />
-                  <BButton variant="success" type="button" id="button-email">
+                <form v-else @submit.prevent="handleSubmit" class="input-group countdown-input-group mx-auto my-3" style="max-width:420px">
+                  <input
+                    v-model="email"
+                    type="email"
+                    class="form-control border-light shadow"
+                    placeholder="Enter your email address"
+                    required
+                    aria-label="Email address"
+                  />
+                  <BButton variant="success" type="submit">
                     Send<i class="ri-send-plane-2-fill align-bottom ms-2"></i>
                   </BButton>
-                </div>
+                </form>
               </div>
             </div>
           </BCol>

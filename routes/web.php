@@ -21,7 +21,7 @@ Route::controller(OrezoneController::class)->group(function () {
     Route::get('/coming-soon', 'coming_soon');
 
     // Redirect placeholder routes to coming-soon
-    Route::get('/login', fn () => redirect('/coming-soon'));
-    Route::get('/register', fn () => redirect('/coming-soon'));
-    Route::get('/search', fn () => redirect('/coming-soon'));
+    Route::redirect('/login', '/coming-soon');
+    Route::redirect('/register', '/coming-soon');
+    Route::redirect('/search', '/coming-soon');
 });
