@@ -1,0 +1,42 @@
+name: oru_zone
+description: "OruZone - Community sharing platform for ride sharing"
+
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.12.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+  # State management
+  flutter_riverpod: ^2.5.0
+  # Routing
+  go_router: ^14.0.0
+  # Networking
+  dio: ^5.4.0
+  # Storage
+  flutter_secure_storage: ^9.2.0
+  shared_preferences: ^2.2.0
+  # UI
+  google_fonts: ^6.2.0
+  cached_network_image: ^3.3.0
+  shimmer: ^3.0.0
+  fluttertoast: ^8.2.0
+  # Icons
+  cupertino_icons: ^1.0.8
+  # Utils
+  intl: ^0.19.0
+  json_annotation: ^4.9.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  build_runner: ^2.4.0
+  json_serializable: ^6.8.0
+
+flutter:
+  uses-material-design: true
