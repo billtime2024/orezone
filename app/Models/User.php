@@ -102,6 +102,22 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * Get the user's vehicles.
+     */
+    public function vehicles(): HasMany
+    {
+        return $this->hasMany(Vehicle::class);
+    }
+
+    /**
+     * Get the user's verification requests.
+     */
+    public function verificationRequests(): HasMany
+    {
+        return $this->hasMany(VerificationRequest::class);
+    }
+
+    /**
      * Check if the user has a specific capability.
      */
     public function hasCapability(string $capability): bool

@@ -24,4 +24,9 @@ Route::controller(OrezoneController::class)->group(function () {
     Route::redirect('/login', '/coming-soon');
     Route::redirect('/register', '/coming-soon');
     Route::redirect('/search', '/coming-soon');
+
+    // Admin routes
+    Route::get('/admin/users', 'admin_users')->name('admin.users');
+    Route::get('/admin/verifications', 'admin_verifications')->name('admin.verifications');
+    Route::get('/admin/vehicles', 'admin_vehicles')->name('admin.vehicles');
 });
