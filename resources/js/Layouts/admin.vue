@@ -11,6 +11,8 @@ export default {
                 { label: 'Users', href: '/admin/users', icon: 'ri-user-line' },
                 { label: 'Verifications', href: '/admin/verifications', icon: 'ri-file-list-3-line' },
                 { label: 'Vehicles', href: '/admin/vehicles', icon: 'ri-roadster-line' },
+                { label: 'Trips', href: '/admin/trips', icon: 'ri-route-line' },
+                { label: 'Bookings', href: '/admin/bookings', icon: 'ri-bookmark-line' },
             ],
         };
     },

@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Models\VerificationRequest;
+use App\Models\Booking;
+use App\Models\Trip;
 use App\Models\Vehicle;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -83,5 +85,45 @@ class OrezoneController extends Controller
         $vehicles = $query->paginate(20)->withQueryString();
 
         return Inertia::render('admin/vehicles/index', ['vehicles' => $vehicles]);
+    }
+
+    /**
+     * Admin: Trips list
+     */
+    public function admin_trips(Request $request)
+    {
+        $query = Trip::with(['host', 'vehicle'])->latest();
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('origin', 'like', "%{$search}%")
+                  ->orWhere('destination', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        $trips = $query->paginate(20)->withQueryString();
+
+        return Inertia::render('admin/trips/index', ['trips' => $trips]);
+    }
+
+    /**
+     * Admin: Bookings list
+     */
+    public function admin_bookings(Request $request)
+    {
+        $query = Booking::with(['trip', 'traveler', 'trip.host'])->latest();
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        $bookings = $query->paginate(20)->withQueryString();
+
+        return Inertia::render('admin/bookings/index', ['bookings' => $bookings]);
     }
 }

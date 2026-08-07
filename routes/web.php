@@ -29,4 +29,6 @@ Route::controller(OrezoneController::class)->group(function () {
     Route::get('/admin/users', 'admin_users')->name('admin.users');
     Route::get('/admin/verifications', 'admin_verifications')->name('admin.verifications');
     Route::get('/admin/vehicles', 'admin_vehicles')->name('admin.vehicles');
+    Route::get('/admin/trips', 'admin_trips')->name('admin.trips');
+    Route::get('/admin/bookings', 'admin_bookings')->name('admin.bookings');
 });

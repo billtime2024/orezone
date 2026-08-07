@@ -110,6 +110,22 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * Get the user's hosted trips.
+     */
+    public function trips(): HasMany
+    {
+        return $this->hasMany(Trip::class, 'host_id');
+    }
+
+    /**
+     * Get the user's bookings as a traveler.
+     */
+    public function bookings(): HasMany
+    {
+        return $this->hasMany(Booking::class, 'traveler_id');
+    }
+
+    /**
      * Get the user's verification requests.
      */
     public function verificationRequests(): HasMany
