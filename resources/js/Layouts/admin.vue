@@ -13,6 +13,10 @@ export default {
                 { label: 'Vehicles', href: '/admin/vehicles', icon: 'ri-roadster-line' },
                 { label: 'Trips', href: '/admin/trips', icon: 'ri-route-line' },
                 { label: 'Bookings', href: '/admin/bookings', icon: 'ri-bookmark-line' },
+                { label: 'Wallets', href: '/admin/wallets', icon: 'ri-wallet-3-line' },
+                { label: 'Reviews', href: '/admin/reviews', icon: 'ri-star-line' },
+                { label: 'Reports', href: '/admin/reports', icon: 'ri-flag-line' },
+                { label: 'SOS Alerts', href: '/admin/sos', icon: 'ri-alarm-warning-line' },
             ],
         };
     },

@@ -7,6 +7,10 @@ use App\Models\VerificationRequest;
 use App\Models\Booking;
 use App\Models\Trip;
 use App\Models\Vehicle;
+use App\Models\Wallet;
+use App\Models\Review;
+use App\Models\Report;
+use App\Models\SosAlert;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -125,5 +129,69 @@ class OrezoneController extends Controller
         $bookings = $query->paginate(20)->withQueryString();
 
         return Inertia::render('admin/bookings/index', ['bookings' => $bookings]);
+    }
+
+    /**
+     * Admin: Wallets list
+     */
+    public function admin_wallets(Request $request)
+    {
+        $query = Wallet::with('user')->latest();
+
+        if ($request->filled('status')) {
+            $query->where('is_active', $request->status === 'active');
+        }
+
+        $wallets = $query->paginate(20)->withQueryString();
+
+        return Inertia::render('admin/wallets/index', ['wallets' => $wallets]);
+    }
+
+    /**
+     * Admin: Reviews list
+     */
+    public function admin_reviews(Request $request)
+    {
+        $query = Review::with(['reviewer', 'reviewee', 'trip'])->latest();
+
+        if ($request->filled('rating')) {
+            $query->where('rating', $request->rating);
+        }
+
+        $reviews = $query->paginate(20)->withQueryString();
+
+        return Inertia::render('admin/reviews/index', ['reviews' => $reviews]);
+    }
+
+    /**
+     * Admin: Reports list
+     */
+    public function admin_reports(Request $request)
+    {
+        $query = Report::with(['reporter', 'reportedUser'])->latest();
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        $reports = $query->paginate(20)->withQueryString();
+
+        return Inertia::render('admin/reports/index', ['reports' => $reports]);
+    }
+
+    /**
+     * Admin: SOS alerts list
+     */
+    public function admin_sos(Request $request)
+    {
+        $query = SosAlert::with(['user', 'trip'])->latest();
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        $alerts = $query->paginate(20)->withQueryString();
+
+        return Inertia::render('admin/sos/index', ['alerts' => $alerts]);
     }
 }

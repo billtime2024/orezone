@@ -2,10 +2,14 @@
 
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\BookingController;
+use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\ProfileController;
+use App\Http\Controllers\Api\V1\RatingController;
+use App\Http\Controllers\Api\V1\SafetyController;
 use App\Http\Controllers\Api\V1\TripController;
 use App\Http\Controllers\Api\V1\VerificationController;
 use App\Http\Controllers\Api\V1\VehicleController;
+use App\Http\Controllers\Api\V1\WalletController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -64,5 +68,24 @@ Route::prefix('v1')->group(function () {
         Route::post('bookings/{booking}/reject', [BookingController::class, 'reject']);
         Route::post('bookings/{booking}/cancel', [BookingController::class, 'cancel']);
         Route::post('bookings/{booking}/complete', [BookingController::class, 'complete']);
+
+        // ── Wallet Routes ──────────────────────────────────────────
+        Route::get('wallet', [WalletController::class, 'show']);
+        Route::get('wallet/transactions', [WalletController::class, 'transactions']);
+        Route::post('wallet/topups', [WalletController::class, 'topup']);
+
+        // ── Rating Routes ──────────────────────────────────────────
+        Route::post('ratings', [RatingController::class, 'store']);
+        Route::get('users/{user}/ratings', [RatingController::class, 'userRatings']);
+
+        // ── Safety Routes ──────────────────────────────────────────
+        Route::post('reports', [SafetyController::class, 'storeReport']);
+        Route::post('users/{user}/block', [SafetyController::class, 'blockUser']);
+        Route::post('sos', [SafetyController::class, 'triggerSos']);
+
+        // ── Notification Routes ────────────────────────────────────
+        Route::get('notifications', [NotificationController::class, 'index']);
+        Route::patch('notifications/{notification}/read', [NotificationController::class, 'markAsRead']);
+        Route::patch('notifications/read-all', [NotificationController::class, 'markAllAsRead']);
     });
 });

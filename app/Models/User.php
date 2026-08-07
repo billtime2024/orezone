@@ -134,6 +134,110 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * Get the user's wallet.
+     */
+    public function wallet(): HasOne
+    {
+        return $this->hasOne(Wallet::class);
+    }
+
+    /**
+     * Get the user's wallet transactions.
+     */
+    public function walletTransactions(): HasMany
+    {
+        return $this->hasMany(WalletTransaction::class);
+    }
+
+    /**
+     * Get the user's payment orders.
+     */
+    public function paymentOrders(): HasMany
+    {
+        return $this->hasMany(PaymentOrder::class);
+    }
+
+    /**
+     * Get reviews written by this user.
+     */
+    public function givenReviews(): HasMany
+    {
+        return $this->hasMany(Review::class, 'reviewer_id');
+    }
+
+    /**
+     * Get reviews received by this user.
+     */
+    public function receivedReviews(): HasMany
+    {
+        return $this->hasMany(Review::class, 'reviewee_id');
+    }
+
+    /**
+     * Get reports filed by this user.
+     */
+    public function filedReports(): HasMany
+    {
+        return $this->hasMany(Report::class, 'reporter_id');
+    }
+
+    /**
+     * Get reports filed against this user.
+     */
+    public function receivedReports(): HasMany
+    {
+        return $this->hasMany(Report::class, 'reported_user_id');
+    }
+
+    /**
+     * Get users blocked by this user.
+     */
+    public function blockedUsers(): HasMany
+    {
+        return $this->hasMany(BlockedUser::class);
+    }
+
+    /**
+     * Get users who blocked this user.
+     */
+    public function blockedByUsers(): HasMany
+    {
+        return $this->hasMany(BlockedUser::class, 'blocked_user_id');
+    }
+
+    /**
+     * Get the user's emergency contacts.
+     */
+    public function emergencyContacts(): HasMany
+    {
+        return $this->hasMany(EmergencyContact::class);
+    }
+
+    /**
+     * Get SOS alerts triggered by this user.
+     */
+    public function sosAlerts(): HasMany
+    {
+        return $this->hasMany(SosAlert::class);
+    }
+
+    /**
+     * Get the user's notifications.
+     */
+    public function notifications(): HasMany
+    {
+        return $this->hasMany(AppNotification::class);
+    }
+
+    /**
+     * Get audit logs for this user.
+     */
+    public function auditLogs(): HasMany
+    {
+        return $this->hasMany(AuditLog::class);
+    }
+
+    /**
      * Check if the user has a specific capability.
      */
     public function hasCapability(string $capability): bool
