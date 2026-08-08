@@ -360,9 +360,8 @@ class PortalRentalController extends Controller
             abort(403);
         }
 
-        $newStatus = $listing->status === 'active' ? 'paused' : 'active';
-        $listing->update(['status' => $newStatus]);
+        $this->listingService->toggleStatus($listing);
 
-        return back()->with('success', "Listing {$newStatus} successfully!");
+        return back()->with('success', 'Listing status updated successfully!');
     }
 }

@@ -3,15 +3,15 @@
 namespace App\Services\Rental;
 
 use App\Enums\RentalBookingStatus;
+use App\Events\RentalBookingCancelled;
+use App\Events\RentalBookingConfirmed;
+use App\Events\RentalBookingCreated;
+use App\Events\RentalBookingRejected;
 use App\Exceptions\BookingException;
 use App\Models\RentalBooking;
 use App\Models\RentalBookingStatusHistory;
 use App\Models\RentalListing;
 use App\Models\User;
-use App\Notifications\RentalBookingAutoTransition;
-use App\Notifications\RentalBookingCancelled;
-use App\Notifications\RentalBookingConfirmed;
-use App\Notifications\RentalBookingCreated;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -35,6 +35,11 @@ class BookingService
 
         if ($nights < 1) {
             throw new BookingException('Minimum stay is 1 ' . $listing->price_unit . '.');
+        }
+
+        // Cannot book your own listing
+        if (Auth::id() === $listing->user_id) {
+            throw new BookingException('You cannot book your own listing.');
         }
 
         return DB::transaction(function () use ($listing, $data, $nights) {
@@ -61,6 +66,9 @@ class BookingService
                 'special_requests' => $data['special_requests'] ?? null,
                 'booking_type' => $lockedListing->instant_booking ? 'instant' : 'request',
                 'status' => $lockedListing->instant_booking ? 'confirmed' : 'pending',
+                'subtotal' => 0,
+                'service_fee' => 0,
+                'total_amount' => 0,
             ]);
 
             $booking->calculateTotal();
@@ -72,11 +80,8 @@ class BookingService
             // Update listing stats
             $lockedListing->increment('total_bookings');
 
-            // Notify owner
-            $owner = User::find($lockedListing->user_id);
-            if ($owner) {
-                $owner->notify(new RentalBookingCreated($booking));
-            }
+            // Dispatch event (listener handles notification)
+            \App\Events\RentalBookingCreated::dispatch($booking);
 
             return $booking;
         });
@@ -137,7 +142,7 @@ class BookingService
             }
 
             // Dispatch notifications
-            $this->dispatchNotifications($fresh, $fromStatus->value, $toStatus->value, $actor);
+            $this->dispatchBookingEvents($fresh, $fromStatus->value, $toStatus->value, $actor);
 
             return $fresh;
         });
@@ -262,56 +267,22 @@ class BookingService
     }
 
     /**
-     * Dispatch notifications based on status transition.
+     * Dispatch events based on status transition (listeners handle notifications).
      */
-    private function dispatchNotifications(
+    private function dispatchBookingEvents(
         RentalBooking $booking,
         string $fromStatus,
         string $toStatus,
         string $actor,
     ): void {
-        // Reload relations
         $booking->load(['listing', 'guest', 'owner']);
 
         match ($toStatus) {
-            'confirmed' => $this->notifyConfirmed($booking),
-            'rejected', 'cancelled_by_guest', 'cancelled_by_host' => $this->notifyCancelled($booking, $toStatus),
-            'active', 'completed', 'expired' => $this->notifyAutoTransition($booking, $fromStatus, $toStatus),
+            'confirmed' => RentalBookingConfirmed::dispatch($booking),
+            'cancelled_by_guest' => RentalBookingCancelled::dispatch($booking, 'guest'),
+            'cancelled_by_host' => RentalBookingCancelled::dispatch($booking, 'host'),
+            'rejected' => RentalBookingRejected::dispatch($booking),
             default => null,
         };
-    }
-
-    private function notifyConfirmed(RentalBooking $booking): void
-    {
-        if ($booking->guest) {
-            $booking->guest->notify(new RentalBookingConfirmed($booking));
-        }
-    }
-
-    private function notifyCancelled(RentalBooking $booking, string $status): void
-    {
-        $cancelledBy = match ($status) {
-            'cancelled_by_guest' => 'guest',
-            'cancelled_by_host' => 'host',
-            default => 'system',
-        };
-
-        // Notify the other party
-        if ($cancelledBy === 'guest' && $booking->owner) {
-            $booking->owner->notify(new RentalBookingCancelled($booking, $cancelledBy));
-        } elseif ($cancelledBy === 'host' && $booking->guest) {
-            $booking->guest->notify(new RentalBookingCancelled($booking, $cancelledBy));
-        }
-    }
-
-    private function notifyAutoTransition(RentalBooking $booking, string $from, string $to): void
-    {
-        // Notify both guest and owner
-        if ($booking->guest) {
-            $booking->guest->notify(new RentalBookingAutoTransition($booking, $from, $to));
-        }
-        if ($booking->owner) {
-            $booking->owner->notify(new RentalBookingAutoTransition($booking, $from, $to));
-        }
     }
 }

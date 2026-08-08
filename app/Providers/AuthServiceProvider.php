@@ -17,6 +17,9 @@ class AuthServiceProvider extends ServiceProvider
         \App\Models\Booking::class => \App\Policies\BookingPolicy::class,
         \App\Models\Vehicle::class => \App\Policies\VehiclePolicy::class,
         \App\Models\Wallet::class => \App\Policies\WalletPolicy::class,
+        \App\Models\RentalListing::class => \App\Policies\RentalListingPolicy::class,
+        \App\Models\RentalBooking::class => \App\Policies\RentalBookingPolicy::class,
+        \App\Models\RentalReview::class => \App\Policies\RentalReviewPolicy::class,
     ];
 
     /**

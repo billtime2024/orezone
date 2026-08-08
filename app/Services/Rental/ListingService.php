@@ -226,4 +226,14 @@ class ListingService
         $listing->delete();
         return true;
     }
+
+    /**
+     * Toggle listing status between active and paused.
+     */
+    public function toggleStatus(RentalListing $listing): RentalListing
+    {
+        $newStatus = $listing->status === 'active' ? 'paused' : 'active';
+        $listing->update(['status' => $newStatus]);
+        return $listing;
+    }
 }

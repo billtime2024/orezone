@@ -3,9 +3,13 @@
 namespace App\Providers;
 
 use App\Models\Booking;
+use App\Models\RentalBooking;
+use App\Models\RentalListing;
 use App\Models\Trip;
 use App\Models\WalletTransaction;
 use App\Observers\BookingObserver;
+use App\Observers\RentalBookingObserver;
+use App\Observers\RentalListingObserver;
 use App\Observers\TripObserver;
 use App\Observers\WalletTransactionObserver;
 use Illuminate\Support\Facades\Schema;
@@ -32,5 +36,7 @@ class AppServiceProvider extends ServiceProvider
         Trip::observe(TripObserver::class);
         Booking::observe(BookingObserver::class);
         WalletTransaction::observe(WalletTransactionObserver::class);
+        RentalListing::observe(RentalListingObserver::class);
+        RentalBooking::observe(RentalBookingObserver::class);
     }
 }

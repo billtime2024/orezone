@@ -6,11 +6,16 @@ use App\Events\BookingAccepted;
 use App\Events\BookingCancelled;
 use App\Events\BookingConfirmed;
 use App\Events\BookingCreated;
+use App\Events\RentalBookingCancelled;
+use App\Events\RentalBookingConfirmed;
+use App\Events\RentalBookingCreated;
+use App\Events\RentalBookingRejected;
 use App\Events\TripCancelled;
 use App\Events\TripPublished;
 use App\Events\WalletDebited;
 use App\Listeners\RecordWalletTransaction;
 use App\Listeners\SendBookingNotification;
+use App\Listeners\SendRentalBookingNotification;
 use App\Listeners\SendTripNotification;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Auth\Listeners\SendEmailVerificationNotification;
@@ -54,6 +59,21 @@ class EventServiceProvider extends ServiceProvider
         WalletDebited::class => [
             RecordWalletTransaction::class,
         ],
+
+        // Rental Booking events
+        RentalBookingCreated::class => [
+            SendRentalBookingNotification::class,
+        ],
+        RentalBookingConfirmed::class => [
+            SendRentalBookingNotification::class,
+        ],
+        RentalBookingCancelled::class => [
+            SendRentalBookingNotification::class,
+        ],
+        RentalBookingRejected::class => [
+            SendRentalBookingNotification::class,
+        ],
+
     ];
 
     /**

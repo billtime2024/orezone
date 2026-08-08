@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Exceptions\BookingException;
 use App\Http\Controllers\Controller;
+use App\Http\Resources\Api\V1\RentalReviewResource;
 use App\Models\RentalBooking;
 use App\Models\RentalListing;
 use App\Models\RentalReview;
@@ -29,7 +30,7 @@ class RentalReviewController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $reviews->items(),
+            'data' => RentalReviewResource::collection($reviews),
             'meta' => [
                 'current_page' => $reviews->currentPage(),
                 'last_page' => $reviews->lastPage(),
@@ -59,7 +60,7 @@ class RentalReviewController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $review->load('user:id,name,avatar_path'),
+                'data' => new RentalReviewResource($review->load('user:id,name,avatar_path')),
                 'message' => 'Review submitted successfully.',
             ], 201);
         } catch (BookingException $e) {
@@ -75,9 +76,7 @@ class RentalReviewController extends Controller
      */
     public function adminIndex(Request $request): JsonResponse
     {
-        if (!$request->user()->is_admin) {
-            return response()->json(['success' => false, 'error' => 'Unauthorized.'], 403);
-        }
+        $this->authorize('viewAny', RentalReview::class);
 
         $reviews = $this->reviewService->getAllReviews(
             $request->integer('per_page', 20)
@@ -85,7 +84,7 @@ class RentalReviewController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $reviews->items(),
+            'data' => RentalReviewResource::collection($reviews),
             'meta' => [
                 'current_page' => $reviews->currentPage(),
                 'last_page' => $reviews->lastPage(),
@@ -98,17 +97,15 @@ class RentalReviewController extends Controller
     /**
      * PATCH /admin/rentals-reviews/{review}/toggle — Toggle visibility (admin).
      */
-    public function toggleVisibility(Request $request, RentalReview $review): JsonResponse
+    public function toggleVisibility(RentalReview $review): JsonResponse
     {
-        if (!$request->user()->is_admin) {
-            return response()->json(['success' => false, 'error' => 'Unauthorized.'], 403);
-        }
+        $this->authorize('toggleVisibility', $review);
 
         $review = $this->reviewService->toggleVisibility($review);
 
         return response()->json([
             'success' => true,
-            'data' => $review,
+            'data' => new RentalReviewResource($review),
             'message' => 'Review visibility toggled.',
         ]);
     }

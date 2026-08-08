@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api\V1;
 use App\Enums\RentalBookingStatus;
 use App\Exceptions\BookingException;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\V1\StoreRentalBookingRequest;
+use App\Http\Resources\Api\V1\RentalBookingResource;
 use App\Models\RentalBooking;
 use App\Models\RentalListing;
 use App\Services\Rental\BookingService;
@@ -20,22 +22,18 @@ class RentalBookingController extends Controller
     /**
      * POST /rentals/{listing}/bookings — Create a booking.
      */
-    public function store(Request $request, RentalListing $listing): JsonResponse
+    public function store(StoreRentalBookingRequest $request, RentalListing $listing): JsonResponse
     {
-        $validated = $request->validate([
-            'check_in' => 'required|date|after_or_equal:today',
-            'check_out' => 'required|date|after:check_in',
-            'guests_count' => 'required|integer|min:1',
-            'guest_message' => 'nullable|string|max:1000',
-            'special_requests' => 'nullable|array',
-        ]);
+        $validated = $request->validated();
 
         try {
             $booking = $this->bookingService->createBooking($listing, $validated);
 
             return response()->json([
                 'success' => true,
-                'data' => $booking->load(['listing:id,title,city,photos,rental_type', 'owner:id,name']),
+                'data' => new RentalBookingResource(
+                    $booking->load(['listing:id,title,city,photos,rental_type', 'owner:id,name'])
+                ),
             ], 201);
         } catch (BookingException $e) {
             return response()->json([
@@ -57,7 +55,7 @@ class RentalBookingController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $bookings->items(),
+            'data' => RentalBookingResource::collection($bookings),
             'meta' => [
                 'current_page' => $bookings->currentPage(),
                 'last_page' => $bookings->lastPage(),
@@ -84,7 +82,7 @@ class RentalBookingController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $bookings->items(),
+            'data' => RentalBookingResource::collection($bookings),
             'meta' => [
                 'current_page' => $bookings->currentPage(),
                 'last_page' => $bookings->lastPage(),
@@ -97,13 +95,9 @@ class RentalBookingController extends Controller
     /**
      * GET /bookings/{booking} — Show booking details.
      */
-    public function show(Request $request, RentalBooking $booking): JsonResponse
+    public function show(RentalBooking $booking): JsonResponse
     {
-        // Only guest, owner, or admin can view
-        $userId = $request->user()->id;
-        if ($booking->user_id !== $userId && $booking->owner_id !== $userId && !$request->user()->is_admin) {
-            return response()->json(['success' => false, 'error' => 'Unauthorized.'], 403);
-        }
+        $this->authorize('view', $booking);
 
         $booking->load([
             'listing:id,title,city,photos,rental_type,address_line1',
@@ -117,28 +111,23 @@ class RentalBookingController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $booking,
+            'data' => new RentalBookingResource($booking),
         ]);
     }
 
     /**
      * POST /bookings/{booking}/confirm — Host confirms.
      */
-    public function confirm(Request $request, RentalBooking $booking): JsonResponse
+    public function confirm(RentalBooking $booking): JsonResponse
     {
-        if ($booking->owner_id !== $request->user()->id) {
-            return response()->json(['success' => false, 'error' => 'Unauthorized.'], 403);
-        }
+        $this->authorize('confirm', $booking);
 
         try {
-            $booking = $this->bookingService->confirmBooking(
-                $booking,
-                $request->get('host_message')
-            );
+            $booking = $this->bookingService->confirmBooking($booking);
 
             return response()->json([
                 'success' => true,
-                'data' => $booking,
+                'data' => new RentalBookingResource($booking),
                 'message' => 'Booking confirmed.',
             ]);
         } catch (BookingException $e) {
@@ -151,9 +140,7 @@ class RentalBookingController extends Controller
      */
     public function reject(Request $request, RentalBooking $booking): JsonResponse
     {
-        if ($booking->owner_id !== $request->user()->id) {
-            return response()->json(['success' => false, 'error' => 'Unauthorized.'], 403);
-        }
+        $this->authorize('reject', $booking);
 
         $validated = $request->validate(['reason' => 'required|string|max:500']);
 
@@ -162,7 +149,7 @@ class RentalBookingController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $booking,
+                'data' => new RentalBookingResource($booking),
                 'message' => 'Booking rejected.',
             ]);
         } catch (BookingException $e) {
@@ -175,9 +162,7 @@ class RentalBookingController extends Controller
      */
     public function cancel(Request $request, RentalBooking $booking): JsonResponse
     {
-        if ($booking->user_id !== $request->user()->id) {
-            return response()->json(['success' => false, 'error' => 'Unauthorized.'], 403);
-        }
+        $this->authorize('cancelByGuest', $booking);
 
         $validated = $request->validate(['reason' => 'required|string|max:500']);
 
@@ -186,7 +171,7 @@ class RentalBookingController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $booking,
+                'data' => new RentalBookingResource($booking),
                 'message' => 'Booking cancelled.',
             ]);
         } catch (BookingException $e) {
@@ -199,9 +184,7 @@ class RentalBookingController extends Controller
      */
     public function hostCancel(Request $request, RentalBooking $booking): JsonResponse
     {
-        if ($booking->owner_id !== $request->user()->id) {
-            return response()->json(['success' => false, 'error' => 'Unauthorized.'], 403);
-        }
+        $this->authorize('cancelByHost', $booking);
 
         $validated = $request->validate(['reason' => 'required|string|max:500']);
 
@@ -210,7 +193,7 @@ class RentalBookingController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $booking,
+                'data' => new RentalBookingResource($booking),
                 'message' => 'Booking cancelled by host.',
             ]);
         } catch (BookingException $e) {

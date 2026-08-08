@@ -3,6 +3,9 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\V1\StoreRentalListingRequest;
+use App\Http\Requests\Api\V1\UpdateRentalListingRequest;
+use App\Http\Resources\Api\V1\RentalListingResource;
 use App\Models\RentalListing;
 use App\Services\Rental\AvailabilityService;
 use App\Services\Rental\ListingService;
@@ -38,7 +41,7 @@ class RentalListingController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $listings->items(),
+            'data' => RentalListingResource::collection($listings),
             'meta' => [
                 'current_page' => $listings->currentPage(),
                 'last_page' => $listings->lastPage(),
@@ -51,30 +54,9 @@ class RentalListingController extends Controller
     /**
      * POST /rentals — Create a new listing.
      */
-    public function store(Request $request): JsonResponse
+    public function store(StoreRentalListingRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'rental_type' => 'required|in:house,car,commercial,room',
-            'title' => 'required|string|max:255',
-            'description' => 'nullable|string|max:5000',
-            'price_per_unit' => 'required|numeric|min:1',
-            'price_unit' => 'required|in:hour,day,month,year',
-            'security_deposit' => 'nullable|numeric|min:0',
-            'cleaning_fee' => 'nullable|numeric|min:0',
-            'address_line1' => 'required|string|max:255',
-            'address_line2' => 'nullable|string|max:255',
-            'city' => 'required|string|max:100',
-            'state' => 'required|string|max:100',
-            'pincode' => 'required|string|max:10',
-            'latitude' => 'nullable|numeric|between:-90,90',
-            'longitude' => 'nullable|numeric|between:-180,180',
-            'instant_booking' => 'nullable|boolean',
-            'blocked_dates' => 'nullable|array',
-            'blocked_dates.*' => 'date',
-            'rules' => 'nullable|array',
-            'rules.*' => 'string|max:255',
-            'details' => 'required|array',
-        ]);
+        $validated = $request->validated();
 
         $data = collect($validated)->except('details')->toArray();
         $data['user_id'] = $request->user()->id;
@@ -83,7 +65,7 @@ class RentalListingController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $listing,
+            'data' => new RentalListingResource($listing),
         ], 201);
     }
 
@@ -96,43 +78,16 @@ class RentalListingController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $listing,
+            'data' => new RentalListingResource($listing),
         ]);
     }
 
     /**
      * PUT /rentals/{listing} — Update a listing.
      */
-    public function update(Request $request, RentalListing $listing): JsonResponse
+    public function update(UpdateRentalListingRequest $request, RentalListing $listing): JsonResponse
     {
-        // Only owner can update
-        if ($listing->user_id !== $request->user()->id) {
-            return response()->json([
-                'success' => false,
-                'error' => 'You can only update your own listings.',
-            ], 403);
-        }
-
-        $validated = $request->validate([
-            'title' => 'sometimes|string|max:255',
-            'description' => 'nullable|string|max:5000',
-            'price_per_unit' => 'sometimes|numeric|min:1',
-            'price_unit' => 'sometimes|in:hour,day,month,year',
-            'security_deposit' => 'nullable|numeric|min:0',
-            'cleaning_fee' => 'nullable|numeric|min:0',
-            'address_line1' => 'sometimes|string|max:255',
-            'address_line2' => 'nullable|string|max:255',
-            'city' => 'sometimes|string|max:100',
-            'state' => 'sometimes|string|max:100',
-            'pincode' => 'sometimes|string|max:10',
-            'latitude' => 'nullable|numeric|between:-90,90',
-            'longitude' => 'nullable|numeric|between:-180,180',
-            'status' => 'sometimes|in:draft,active,paused,closed',
-            'instant_booking' => 'nullable|boolean',
-            'blocked_dates' => 'nullable|array',
-            'rules' => 'nullable|array',
-            'details' => 'nullable|array',
-        ]);
+        $validated = $request->validated();
 
         $data = collect($validated)->except('details')->toArray();
         $details = $validated['details'] ?? null;
@@ -141,21 +96,16 @@ class RentalListingController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $listing,
+            'data' => new RentalListingResource($listing),
         ]);
     }
 
     /**
      * DELETE /rentals/{listing} — Delete a listing.
      */
-    public function destroy(Request $request, RentalListing $listing): JsonResponse
+    public function destroy(RentalListing $listing): JsonResponse
     {
-        if ($listing->user_id !== $request->user()->id) {
-            return response()->json([
-                'success' => false,
-                'error' => 'You can only delete your own listings.',
-            ], 403);
-        }
+        $this->authorize('delete', $listing);
 
         if (!$this->listingService->deleteListing($listing)) {
             return response()->json([
@@ -175,9 +125,7 @@ class RentalListingController extends Controller
      */
     public function uploadPhotos(Request $request, RentalListing $listing): JsonResponse
     {
-        if ($listing->user_id !== $request->user()->id) {
-            return response()->json(['success' => false, 'error' => 'Unauthorized.'], 403);
-        }
+        $this->authorize('uploadPhotos', $listing);
 
         $request->validate([
             'photos' => 'required|array|min:1|max:10',
@@ -197,9 +145,7 @@ class RentalListingController extends Controller
      */
     public function deletePhoto(Request $request, RentalListing $listing): JsonResponse
     {
-        if ($listing->user_id !== $request->user()->id) {
-            return response()->json(['success' => false, 'error' => 'Unauthorized.'], 403);
-        }
+        $this->authorize('deletePhoto', $listing);
 
         $request->validate(['photo_url' => 'required|url']);
 
@@ -230,9 +176,7 @@ class RentalListingController extends Controller
      */
     public function blockDates(Request $request, RentalListing $listing): JsonResponse
     {
-        if ($listing->user_id !== $request->user()->id) {
-            return response()->json(['success' => false, 'error' => 'Unauthorized.'], 403);
-        }
+        $this->authorize('manageDates', $listing);
 
         $validated = $request->validate([
             'dates' => 'required|array|min:1',
@@ -253,9 +197,7 @@ class RentalListingController extends Controller
      */
     public function unblockDates(Request $request, RentalListing $listing): JsonResponse
     {
-        if ($listing->user_id !== $request->user()->id) {
-            return response()->json(['success' => false, 'error' => 'Unauthorized.'], 403);
-        }
+        $this->authorize('manageDates', $listing);
 
         $validated = $request->validate([
             'dates' => 'required|array|min:1',
@@ -282,7 +224,7 @@ class RentalListingController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $listings->items(),
+            'data' => RentalListingResource::collection($listings),
             'meta' => [
                 'current_page' => $listings->currentPage(),
                 'last_page' => $listings->lastPage(),

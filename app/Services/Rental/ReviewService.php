@@ -45,6 +45,9 @@ class ReviewService
             // Update listing aggregate stats
             $this->updateListingStats($booking->rental_listing_id);
 
+            // Dispatch event (listener handles notification)
+            \App\Events\RentalReviewCreated::dispatch($review);
+
             return $review;
         });
     }
@@ -56,7 +59,7 @@ class ReviewService
     {
         return RentalReview::where('rental_listing_id', $listing->id)
             ->where('is_visible', true)
-            ->with('user:id,name,avatar')
+            ->with('user:id,name,avatar_path')
             ->orderByDesc('created_at')
             ->paginate($perPage);
     }
@@ -67,7 +70,7 @@ class ReviewService
     public function getAllReviews(int $perPage = 20): \Illuminate\Contracts\Pagination\LengthAwarePaginator
     {
         return RentalReview::with([
-            'user:id,name,avatar',
+            'user:id,name,avatar_path',
             'listing:id,title,rental_type',
             'booking:id,check_in,check_out',
         ])
