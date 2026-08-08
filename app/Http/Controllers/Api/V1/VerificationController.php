@@ -60,7 +60,12 @@ class VerificationController extends Controller
         $request->validate([
             'type' => 'required|in:profile,host_identity,vehicle',
             'document_type' => 'required|in:driving_license,rc_book,insurance,vehicle_photo,profile_photo,aadhaar_reference',
-            'file' => 'required|file|max:5120',
+            'file' => [
+                'required',
+                'file',
+                'max:5120',
+                'mimes:jpg,jpeg,png,pdf',
+            ],
         ]);
 
         $user = $request->user();

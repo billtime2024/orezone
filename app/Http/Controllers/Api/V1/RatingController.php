@@ -24,53 +24,54 @@ class RatingController extends Controller
         $tripId = $request->validated('trip_id');
         $bookingId = $request->validated('booking_id');
 
-        // Verify user has a completed booking with this reviewee
-        $hasCompletedBooking = Booking::where('traveler_id', $user->id)
-            ->where(function ($query) use ($revieweeId, $tripId) {
-                $query->where('host_id', $revieweeId);
-                if ($tripId) {
-                    $query->where('trip_id', $tripId);
-                }
-            })
+        // The submitted booking must exist and link the reviewer to the reviewee
+        $booking = Booking::where('id', $bookingId)
             ->where('status', 'completed')
-            ->exists();
+            ->where(function ($query) use ($user, $revieweeId) {
+                // Reviewer is the traveler, reviewee is the host
+                $query->where('traveler_id', $user->id)
+                    ->where('host_id', $revieweeId);
+            })
+            ->orWhere(function ($query) use ($user, $revieweeId) {
+                // Reviewer is the host, reviewee is the traveler
+                $query->where('host_id', $user->id)
+                    ->where('traveler_id', $revieweeId);
+            })
+            ->first();
 
-        if (!$hasCompletedBooking) {
-            // Also check if user is the host and the reviewee is the traveler
-            $hasCompletedBooking = Booking::where('host_id', $user->id)
-                ->where('traveler_id', $revieweeId)
-                ->where('status', 'completed')
-                ->when($tripId, function ($query) use ($tripId) {
-                    $query->where('trip_id', $tripId);
-                })
-                ->exists();
-        }
-
-        if (!$hasCompletedBooking) {
+        if (!$booking) {
             return response()->json([
-                'message' => 'You can only rate users you have completed a booking with.',
+                'message' => 'The specified booking does not connect you with the reviewee, or is not completed.',
             ], 422);
         }
 
-        // Check no duplicate review for same trip (DB unique constraint also enforces this)
-        if ($tripId) {
-            $existingReview = Review::where('reviewer_id', $user->id)
-                ->where('reviewee_id', $revieweeId)
-                ->where('trip_id', $tripId)
-                ->exists();
+        // If a trip_id was supplied, it must belong to that booking
+        if ($tripId && (int) $booking->trip_id !== (int) $tripId) {
+            return response()->json([
+                'message' => 'The trip does not belong to the specified booking.',
+            ], 422);
+        }
 
-            if ($existingReview) {
-                return response()->json([
-                    'message' => 'You have already reviewed this user for this trip.',
-                ], 422);
-            }
+        // Use the booking's trip_id as the canonical trip (accepts null from the booking)
+        $resolvedTripId = $tripId ?: $booking->trip_id;
+
+        // Check no duplicate review for same booking
+        $existingReview = Review::where('reviewer_id', $user->id)
+            ->where('reviewee_id', $revieweeId)
+            ->where('booking_id', $booking->id)
+            ->exists();
+
+        if ($existingReview) {
+            return response()->json([
+                'message' => 'You have already reviewed this user for this booking.',
+            ], 422);
         }
 
         $review = Review::create([
             'reviewer_id' => $user->id,
             'reviewee_id' => $revieweeId,
-            'trip_id' => $tripId,
-            'booking_id' => $bookingId,
+            'trip_id' => $resolvedTripId,
+            'booking_id' => $booking->id,
             'rating' => $request->validated('rating'),
             'comment' => $request->validated('comment'),
         ]);

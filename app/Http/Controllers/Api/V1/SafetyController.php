@@ -8,6 +8,7 @@ use App\Http\Requests\Api\V1\StoreSosRequest;
 use App\Http\Resources\Api\V1\ReportResource;
 use App\Http\Resources\Api\V1\SosAlertResource;
 use App\Models\BlockedUser;
+use App\Models\Booking;
 use App\Models\Report;
 use App\Models\SosAlert;
 use App\Models\User;
@@ -22,12 +23,40 @@ class SafetyController extends Controller
     public function storeReport(StoreReportRequest $request): JsonResponse
     {
         $user = $request->user();
+        $reportedUserId = $request->validated('reported_user_id');
+        $bookingId = $request->validated('booking_id');
+        $tripId = $request->validated('trip_id');
+
+        // Validate the booking connects the reporter to the reported user
+        $booking = Booking::where('id', $bookingId)
+            ->where(function ($query) use ($user, $reportedUserId) {
+                $query->where('traveler_id', $user->id)
+                    ->where('host_id', $reportedUserId);
+            })
+            ->orWhere(function ($query) use ($user, $reportedUserId) {
+                $query->where('host_id', $user->id)
+                    ->where('traveler_id', $reportedUserId);
+            })
+            ->first();
+
+        if (!$booking) {
+            return response()->json([
+                'message' => 'The specified booking does not connect you with the reported user.',
+            ], 422);
+        }
+
+        // If a trip_id was supplied, it must belong to that booking
+        if ($tripId && (int) $booking->trip_id !== (int) $tripId) {
+            return response()->json([
+                'message' => 'The trip does not belong to the specified booking.',
+            ], 422);
+        }
 
         $report = Report::create([
             'reporter_id' => $user->id,
-            'reported_user_id' => $request->validated('reported_user_id'),
-            'trip_id' => $request->validated('trip_id'),
-            'booking_id' => $request->validated('booking_id'),
+            'reported_user_id' => $reportedUserId,
+            'trip_id' => $tripId ?: $booking->trip_id,
+            'booking_id' => $booking->id,
             'reason' => $request->validated('reason'),
             'description' => $request->validated('description'),
         ]);
@@ -84,7 +113,7 @@ class SafetyController extends Controller
         // In production: push notifications to emergency contacts and admin dashboard
 
         return response()->json([
-            'message' => 'SOS alert triggered. Emergency services have been notified.',
+            'message' => 'SOS alert recorded. Emergency contacts and the support team have been notified.',
             'data' => new SosAlertResource($sos),
         ], 201);
     }

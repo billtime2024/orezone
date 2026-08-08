@@ -16,7 +16,7 @@ class StoreReportRequest extends FormRequest
         return [
             'reported_user_id' => 'required|exists:users,id',
             'trip_id' => 'nullable|exists:trips,id',
-            'booking_id' => 'nullable|exists:bookings,id',
+            'booking_id' => 'required|exists:bookings,id',
             'reason' => 'required|string|max:255',
             'description' => 'nullable|string|max:2000',
         ];
