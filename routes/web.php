@@ -45,4 +45,8 @@ Route::middleware(['auth', 'can:access-admin'])->controller(OrezoneController::c
 // Portal routes — authenticated users only
 Route::middleware(['auth'])->controller(PortalController::class)->group(function () {
     Route::get('/portal', 'index')->name('portal.index');
+    Route::get('/portal/trips', 'trips')->name('portal.trips');
+    Route::get('/portal/bookings', 'bookings')->name('portal.bookings');
+    Route::get('/portal/wallet', 'wallet')->name('portal.wallet');
+    Route::get('/portal/profile', 'profile')->name('portal.profile');
 });
