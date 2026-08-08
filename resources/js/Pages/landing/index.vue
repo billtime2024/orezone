@@ -69,7 +69,11 @@ export default {
                         <a class="nav-link" href="#trust-safety" @click.prevent="scrollToSection('trust-safety')">Trust &amp; Safety</a>
                     </li>
                 </ul>
-                <div class="d-flex gap-2 align-items-center">
+                <div class="d-flex gap-2 align-items-center" v-if="$page.props.auth?.user">
+                    <span class="text-white me-2">Welcome, {{ $page.props.auth.user.name }}</span>
+                    <Link :href="$page.props.auth.user.is_admin ? '/admin' : '/portal'" class="btn btn-light btn-sm text-primary fw-semibold">Dashboard</Link>
+                </div>
+                <div class="d-flex gap-2 align-items-center" v-else>
                     <Link href="/login" class="btn btn-outline-light btn-sm">Login</Link>
                     <Link href="/login" class="btn btn-light btn-sm text-primary fw-semibold">Get Started</Link>
                     <Link href="/login" class="btn btn-light btn-sm text-primary fw-semibold">Offer a Service</Link>
@@ -95,10 +99,10 @@ export default {
                         and supporting local.
                     </p>
                     <div class="d-flex flex-wrap gap-3 mb-4">
-                        <Link href="/coming-soon" class="btn btn-light btn-lg text-primary fw-semibold px-4">
+                        <Link :href="$page.props.auth?.user ? '/portal/trips/search' : '/login'" class="btn btn-light btn-lg text-primary fw-semibold px-4">
                             🔍 Find a Service
                         </Link>
-                        <Link href="/coming-soon" class="btn btn-outline-light btn-lg px-4">
+                        <Link :href="$page.props.auth?.user ? '/portal/trips/create' : '/login'" class="btn btn-outline-light btn-lg px-4">
                             🚗 Share a Ride
                         </Link>
                     </div>
@@ -221,8 +225,8 @@ export default {
                         </div>
                     </div>
                     <div class="d-flex gap-3">
-                        <Link href="/coming-soon" class="btn btn-primary text-white px-4">Find a Trip</Link>
-                        <Link href="/coming-soon" class="btn btn-outline-primary px-4">Offer a Trip</Link>
+                        <Link :href="$page.props.auth?.user ? '/portal/trips/search' : '/login'" class="btn btn-primary text-white px-4">Find a Trip</Link>
+                        <Link :href="$page.props.auth?.user ? '/portal/trips/create' : '/login'" class="btn btn-outline-primary px-4">Offer a Trip</Link>
                     </div>
                 </div>
                 <div class="col-lg-6 text-center">
@@ -347,7 +351,7 @@ export default {
                     <p class="text-muted mb-3 fw-semibold">
                         Want to be notified when we launch a new service?
                     </p>
-                    <Link href="/coming-soon" class="btn btn-primary text-white px-4">
+                    <Link :href="$page.props.auth?.user ? '/portal' : '/login'" class="btn btn-primary text-white px-4">
                         Get Notified →
                     </Link>
                 </div>
@@ -472,10 +476,10 @@ export default {
                 orezone connects you with your community. Start with rides, grow with us.
             </p>
             <div class="d-flex flex-wrap justify-content-center gap-3 mb-4">
-                <Link href="/coming-soon" class="btn btn-light btn-lg text-primary fw-semibold px-5">
+                <Link :href="$page.props.auth?.user ? '/portal' : '/login'" class="btn btn-light btn-lg text-primary fw-semibold px-5">
                     🔍 Get Started
                 </Link>
-                <Link href="/coming-soon" class="btn btn-outline-light btn-lg px-5">
+                <Link :href="$page.props.auth?.user ? '/portal/trips/create' : '/login'" class="btn btn-outline-light btn-lg px-5">
                     🚗 Offer a Service
                 </Link>
             </div>
@@ -538,7 +542,7 @@ export default {
                     <h6 class="fw-bold text-uppercase mb-3">Get the App</h6>
                     <p class="text-white-50 small">Coming soon to iOS and Android.</p>
                     <div class="d-flex gap-2">
-                        <Link href="/coming-soon" class="btn btn-outline-light btn-sm">Get Started</Link>
+                        <Link :href="$page.props.auth?.user ? '/portal' : '/login'" class="btn btn-outline-light btn-sm">Get Started</Link>
                     </div>
                 </div>
             </div>

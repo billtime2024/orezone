@@ -19,7 +19,16 @@ class OrezoneController extends Controller
 {
     public function landing()
     {
-        return Inertia::render('landing/index');
+        return Inertia::render('landing/index', [
+            'auth' => [
+                'user' => auth()->check() ? [
+                    'id' => auth()->id(),
+                    'name' => auth()->user()->name,
+                    'email' => auth()->user()->email,
+                    'is_admin' => auth()->user()->is_admin,
+                ] : null,
+            ],
+        ]);
     }
 
     public function coming_soon()
