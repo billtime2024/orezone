@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\OrezoneController;
+use App\Http\Controllers\PortalController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -39,4 +40,9 @@ Route::middleware(['auth', 'can:access-admin'])->controller(OrezoneController::c
     Route::get('/admin/sos', 'admin_sos')->name('admin.sos');
     Route::get('/admin/profile', 'admin_profile')->name('admin.profile');
     Route::get('/admin/change-password', 'admin_change_password')->name('admin.change-password');
+});
+
+// Portal routes — authenticated users only
+Route::middleware(['auth'])->controller(PortalController::class)->group(function () {
+    Route::get('/portal', 'index')->name('portal.index');
 });

@@ -5,7 +5,6 @@ namespace App\Http\Responses;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Laravel\Fortify\Contracts\LoginResponse as LoginResponseContract;
-use Laravel\Fortify\Fortify;
 use Symfony\Component\HttpFoundation\Response;
 
 class LoginResponse implements LoginResponseContract
@@ -20,6 +19,6 @@ class LoginResponse implements LoginResponseContract
 
         return $request->wantsJson()
             ? response()->json(['two_factor' => false])
-            : redirect()->intended(Fortify::redirects('login'));
+            : redirect()->intended('/portal');
     }
 }

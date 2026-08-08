@@ -69,9 +69,10 @@ export default {
                         <a class="nav-link" href="#trust-safety" @click.prevent="scrollToSection('trust-safety')">Trust &amp; Safety</a>
                     </li>
                 </ul>
-                <div class="d-flex gap-2">
-                    <Link href="/coming-soon" class="btn btn-outline-light btn-sm">Get Started</Link>
-                    <Link href="/coming-soon" class="btn btn-light btn-sm text-primary fw-semibold">Offer a Service</Link>
+                <div class="d-flex gap-2 align-items-center">
+                    <Link href="/login" class="btn btn-outline-light btn-sm">Login</Link>
+                    <Link href="/login" class="btn btn-light btn-sm text-primary fw-semibold">Get Started</Link>
+                    <Link href="/login" class="btn btn-light btn-sm text-primary fw-semibold">Offer a Service</Link>
                 </div>
             </div>
         </div>
