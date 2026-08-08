@@ -7,7 +7,7 @@ export default {
         return {
             sidebarOpen: true,
             userDropdownOpen: false,
-            openMenus: ['ride-module', 'finance', 'safety'],
+            openMenus: ['ride-module', 'rental-module', 'finance', 'safety'],
             navItems: [
                 { label: 'Dashboard', href: '/admin', icon: 'ri-dashboard-line' },
                 { label: 'Users', href: '/admin/users', icon: 'ri-user-line' },
@@ -20,6 +20,15 @@ export default {
                         { label: 'Vehicles', href: '/admin/vehicles' },
                         { label: 'Trips', href: '/admin/trips' },
                         { label: 'Bookings', href: '/admin/bookings' },
+                    ],
+                },
+                {
+                    label: 'Rental Module',
+                    href: '/admin/rentals',
+                    icon: 'ri-home-4-line',
+                    children: [
+                        { label: 'Listings', href: '/admin/rentals' },
+                        { label: 'Bookings', href: '/admin/rentals-bookings' },
                     ],
                 },
                 {

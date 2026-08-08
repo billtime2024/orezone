@@ -5,6 +5,9 @@ use App\Http\Controllers\Api\V1\BookingController;
 use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\ProfileController;
 use App\Http\Controllers\Api\V1\RatingController;
+use App\Http\Controllers\Api\V1\RentalBookingController;
+use App\Http\Controllers\Api\V1\RentalListingController;
+use App\Http\Controllers\Api\V1\RentalReviewController;
 use App\Http\Controllers\Api\V1\SafetyController;
 use App\Http\Controllers\Api\V1\TripController;
 use App\Http\Controllers\Api\V1\VehicleController;
@@ -87,5 +90,32 @@ Route::prefix('v1')->group(function () {
         Route::get('notifications', [NotificationController::class, 'index']);
         Route::patch('notifications/{notification}/read', [NotificationController::class, 'markAsRead']);
         Route::patch('notifications/read-all', [NotificationController::class, 'markAllAsRead']);
+
+        // ── Rental Listing Routes ─────────────────────────────────
+        Route::get('rentals', [RentalListingController::class, 'index']);
+        Route::post('rentals', [RentalListingController::class, 'store']);
+        Route::get('rentals/my', [RentalListingController::class, 'myListings']);
+        Route::get('rentals/{listing}', [RentalListingController::class, 'show']);
+        Route::put('rentals/{listing}', [RentalListingController::class, 'update']);
+        Route::delete('rentals/{listing}', [RentalListingController::class, 'destroy']);
+        Route::post('rentals/{listing}/photos', [RentalListingController::class, 'uploadPhotos']);
+        Route::delete('rentals/{listing}/photos', [RentalListingController::class, 'deletePhoto']);
+        Route::get('rentals/{listing}/calendar', [RentalListingController::class, 'calendar']);
+        Route::post('rentals/{listing}/block-dates', [RentalListingController::class, 'blockDates']);
+        Route::post('rentals/{listing}/unblock-dates', [RentalListingController::class, 'unblockDates']);
+
+        // ── Rental Booking Routes ─────────────────────────────────
+        Route::post('rentals/{listing}/bookings', [RentalBookingController::class, 'store'])->middleware('throttle:10,1');
+        Route::get('rentals-bookings/my', [RentalBookingController::class, 'myBookings']);
+        Route::get('rentals-bookings/owner', [RentalBookingController::class, 'ownerBookings']);
+        Route::get('rentals-bookings/{booking}', [RentalBookingController::class, 'show']);
+        Route::post('rentals-bookings/{booking}/confirm', [RentalBookingController::class, 'confirm']);
+        Route::post('rentals-bookings/{booking}/reject', [RentalBookingController::class, 'reject']);
+        Route::post('rentals-bookings/{booking}/cancel', [RentalBookingController::class, 'cancel']);
+        Route::post('rentals-bookings/{booking}/host-cancel', [RentalBookingController::class, 'hostCancel']);
+
+        // ── Rental Review Routes ──────────────────────────────────
+        Route::get('rentals/{listing}/reviews', [RentalReviewController::class, 'index']);
+        Route::post('rentals-bookings/{booking}/review', [RentalReviewController::class, 'store']);
     });
 });

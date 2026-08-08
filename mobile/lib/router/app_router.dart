@@ -18,6 +18,11 @@ import '../screens/activity/wallet_screen.dart';
 import '../screens/notifications/notifications_screen.dart';
 import '../screens/profile/profile_screen.dart';
 import '../screens/profile/settings_screen.dart';
+import '../screens/rentals/rental_list_screen.dart';
+import '../screens/rentals/rental_detail_screen.dart';
+import '../screens/rentals/my_rental_bookings_screen.dart';
+import '../screens/rentals/owner_rental_bookings_screen.dart';
+import '../screens/rentals/my_listings_screen.dart';
 
 class AppRouter {
   static final GoRouter router = GoRouter(
@@ -142,6 +147,49 @@ class AppRouter {
         name: 'settings',
         builder: (context, state) => const SettingsScreen(),
       ),
+
+      // Rentals
+      GoRoute(
+        path: '/rentals',
+        name: 'rentals',
+        builder: (context, state) => const RentalListScreen(),
+      ),
+      GoRoute(
+        path: '/rental/:id',
+        name: 'rentalDetails',
+        builder: (context, state) {
+          final id = int.parse(state.pathParameters['id'] ?? '0');
+          return RentalDetailScreen(listingId: id);
+        },
+      ),
+      GoRoute(
+        path: '/my-rental-bookings',
+        name: 'myRentalBookings',
+        builder: (context, state) => const MyRentalBookingsScreen(),
+      ),
+      GoRoute(
+        path: '/owner-rental-bookings',
+        name: 'ownerRentalBookings',
+        builder: (context, state) => const OwnerRentalBookingsScreen(),
+      ),
+      GoRoute(
+        path: '/rentals/my',
+        name: 'myListings',
+        builder: (context, state) => const MyListingsScreen(),
+      ),
+      GoRoute(
+        path: '/rentals/create',
+        name: 'createListing',
+        builder: (context, state) => const _CreateListingPlaceholder(),
+      ),
+      GoRoute(
+        path: '/rentals/:id/edit',
+        name: 'editListing',
+        builder: (context, state) {
+          final id = int.parse(state.pathParameters['id'] ?? '0');
+          return _EditListingPlaceholder(listingId: id);
+        },
+      ),
     ],
   );
 }
@@ -168,6 +216,55 @@ class _MyActivityScreen extends StatelessWidget {
           children: [
             MyTripsHostScreen(),
             MyBookingsTravelerScreen(),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Placeholder for create listing screen
+class _CreateListingPlaceholder extends StatelessWidget {
+  const _CreateListingPlaceholder();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Create Listing')),
+      body: const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.add_home, size: 64, color: Colors.grey),
+            SizedBox(height: 16),
+            Text('Create Rental Listing', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            SizedBox(height: 8),
+            Text('Coming soon', style: TextStyle(color: Colors.grey)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Placeholder for edit listing screen
+class _EditListingPlaceholder extends StatelessWidget {
+  final int listingId;
+  const _EditListingPlaceholder({required this.listingId});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Edit Listing')),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.edit, size: 64, color: Colors.grey),
+            const SizedBox(height: 16),
+            const Text('Edit Listing', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            Text('Listing #$listingId - Coming soon', style: const TextStyle(color: Colors.grey)),
           ],
         ),
       ),

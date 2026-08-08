@@ -60,6 +60,12 @@ export default {
             <div class="collapse navbar-collapse" id="orezoneNav">
                 <ul class="navbar-nav ms-auto me-3 gap-2">
                     <li class="nav-item">
+                        <a class="nav-link" href="#ride-sharing" @click.prevent="scrollToSection('ride-sharing')">Rides</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#rentals" @click.prevent="scrollToSection('rentals')">Rentals</a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link" href="#services" @click.prevent="scrollToSection('services')">Services</a>
                     </li>
                     <li class="nav-item">
@@ -89,7 +95,7 @@ export default {
         <div class="container py-5 position-relative" style="z-index: 2;">
             <div class="row align-items-center py-5" style="min-height: 50vh">
                 <div class="col-lg-7 mb-5 mb-lg-0">
-                    <div class="badge bg-white text-primary fw-semibold mb-3 px-3 py-2">🚀 Ride Sharing — Now Live!</div>
+                    <div class="badge bg-white text-primary fw-semibold mb-3 px-3 py-2">🚀 Ride Sharing and Rentals Now Live</div>
                     <h1 class="display-3 fw-bold mb-4 lh-1">
                         Your Community.<br>Your Services.<br>Connected.
                     </h1>
@@ -272,6 +278,122 @@ export default {
         </div>
     </section>
 
+    <!-- ==================== LIVE: RENTALS ==================== -->
+    <section id="rentals" class="py-5 bg-white">
+        <div class="container py-4">
+            <div class="row align-items-center">
+                <div class="col-lg-6 mb-5 mb-lg-0 order-lg-2">
+                    <div class="badge bg-success text-white fw-semibold mb-3 px-3 py-2">✅ Now Live</div>
+                    <h2 class="display-5 fw-bold text-dark mb-4">Rentals — Homes, Cars & More</h2>
+                    <p class="text-muted fs-5 mb-4">
+                        Need a house on rent? Looking for a car for the weekend? Want a commercial space for your business?
+                        orezone will connect you with verified local owners — transparent pricing, no brokers, direct deals.
+                    </p>
+                    <div class="row g-4 mb-4">
+                        <div class="col-sm-6">
+                            <div class="d-flex align-items-start gap-3">
+                                <span class="fs-2">🏠</span>
+                                <div>
+                                    <h6 class="fw-bold mb-1">House Rent</h6>
+                                    <p class="text-muted small mb-0">Apartments, independent houses, villas — monthly or yearly leases.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="d-flex align-items-start gap-3">
+                                <span class="fs-2">🚗</span>
+                                <div>
+                                    <h6 class="fw-bold mb-1">Car Rent</h6>
+                                    <p class="text-muted small mb-0">Self-drive or with driver — hourly, daily, or weekly rentals.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="d-flex align-items-start gap-3">
+                                <span class="fs-2">🏢</span>
+                                <div>
+                                    <h6 class="fw-bold mb-1">Commercial Space</h6>
+                                    <p class="text-muted small mb-0">Offices, shops, warehouses, co-working — flexible lease terms.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="d-flex align-items-start gap-3">
+                                <span class="fs-2">🛏️</span>
+                                <div>
+                                    <h6 class="fw-bold mb-1">Room & Stay</h6>
+                                    <p class="text-muted small mb-0">PG, hostel, hotel rooms, homestays — daily or monthly stays.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="d-flex gap-3">
+                        <Link :href="$page.props.auth?.user ? '/portal' : '/login'" class="btn btn-success text-white px-4 fw-semibold">
+                            🔍 Find a Rental
+                        </Link>
+                        <Link :href="$page.props.auth?.user ? '/portal' : '/login'" class="btn btn-outline-primary px-4">
+                            List Your Property →
+                        </Link>
+                    </div>
+                </div>
+                <div class="col-lg-6 text-center order-lg-1">
+                    <div class="bg-light rounded-4 p-5">
+                        <div class="row g-3 text-center">
+                            <div class="col-6">
+                                <div class="bg-white rounded-3 p-4 shadow-sm h-100">
+                                    <div class="display-5 mb-2">🏠</div>
+                                    <h6 class="fw-bold mb-1">House Rent</h6>
+                                    <small class="text-muted">Monthly & Yearly</small>
+                                    <div class="mt-2"><span class="badge bg-success bg-opacity-10 text-success small">Live</span></div>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="bg-white rounded-3 p-4 shadow-sm h-100">
+                                    <div class="display-5 mb-2">🚗</div>
+                                    <h6 class="fw-bold mb-1">Car Rent</h6>
+                                    <small class="text-muted">Hourly & Daily</small>
+                                    <div class="mt-2"><span class="badge bg-success bg-opacity-10 text-success small">Live</span></div>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="bg-white rounded-3 p-4 shadow-sm h-100">
+                                    <div class="display-5 mb-2">🏢</div>
+                                    <h6 class="fw-bold mb-1">Commercial</h6>
+                                    <small class="text-muted">Office, Shop, Warehouse</small>
+                                    <div class="mt-2"><span class="badge bg-success bg-opacity-10 text-success small">Live</span></div>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="bg-white rounded-3 p-4 shadow-sm h-100">
+                                    <div class="display-5 mb-2">🛏️</div>
+                                    <h6 class="fw-bold mb-1">Room Stay</h6>
+                                    <small class="text-muted">PG, Hotel, Homestay</small>
+                                    <div class="mt-2"><span class="badge bg-success bg-opacity-10 text-success small">Live</span></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-4 p-3 bg-white rounded-3 shadow-sm">
+                            <div class="row text-center g-2">
+                                <div class="col-4">
+                                    <div class="fw-bold text-primary fs-4">0%</div>
+                                    <small class="text-muted">Brokerage</small>
+                                </div>
+                                <div class="col-4">
+                                    <div class="fw-bold text-success fs-4">✓</div>
+                                    <small class="text-muted">Verified Owners</small>
+                                </div>
+                                <div class="col-4">
+                                    <div class="fw-bold text-info fs-4">🔒</div>
+                                    <small class="text-muted">Secure Payments</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <!-- ==================== HOW IT WORKS (General) ==================== -->
     <section id="how-it-works" class="py-5 bg-white">
         <div class="container py-5">
@@ -328,16 +450,17 @@ export default {
                 <p class="text-muted fs-5">Ride sharing is just the beginning. Here's what's coming next.</p>
             </div>
 
-            <!-- Live service badge -->
-            <div class="text-center mb-4">
+            <!-- Live & launching service badges -->
+            <div class="text-center mb-4 d-flex flex-wrap justify-content-center gap-2">
                 <span class="badge bg-success text-white px-3 py-2 fs-6">🚗 Ride Sharing — LIVE NOW</span>
+                <span class="badge bg-success text-white px-3 py-2 fs-6">✅ Rentals — LIVE NOW</span>
             </div>
 
             <div class="row g-3">
                 <div v-for="service in services" :key="service.name" class="col-6 col-md-4 col-lg-3">
                     <div class="card border-0 shadow-sm h-100 text-center p-4 position-relative">
                         <div class="position-absolute top-0 end-0 p-2">
-                            <span class="badge bg-secondary bg-opacity-10 text-secondary small">Coming Soon</span>
+                            <span class="badge bg-success bg-opacity-10 text-success small">Live</span>
                         </div>
                         <div class="display-5 mb-3">{{ service.icon }}</div>
                         <h5 class="h6 fw-bold mb-1">{{ service.name }}</h5>
@@ -517,8 +640,8 @@ export default {
                     <h6 class="fw-bold text-uppercase mb-3">Services</h6>
                     <ul class="list-unstyled">
                         <li class="mb-2"><span class="text-white">🚗 Ride Sharing</span> <span class="badge bg-success small">Live</span></li>
+                        <li class="mb-2"><span class="text-white-50">🏠 Rentals</span> <span class="badge bg-success small">Live</span></li>
                         <li class="mb-2"><span class="text-white-50">🍛 Food Services</span></li>
-                        <li class="mb-2"><span class="text-white-50">🏠 Home Services</span></li>
                         <li class="mb-2"><span class="text-white-50">🛒 Marketplace</span></li>
                     </ul>
                 </div>

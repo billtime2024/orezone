@@ -97,6 +97,23 @@ class ApiClient {
     }
   }
 
+  Future<ApiResponse> delete(String path, {Map<String, dynamic>? body}) async {
+    try {
+      final uri = Uri.parse('$baseUrl$path');
+      final response = await http.delete(
+        uri,
+        headers: await _getHeaders(),
+        body: body != null ? jsonEncode(body) : null,
+      );
+      return _handleResponse(response);
+    } catch (e) {
+      return ApiResponse(
+        success: false,
+        message: 'Network error: ${e.toString()}',
+      );
+    }
+  }
+
   ApiResponse _handleResponse(http.Response response) {
     try {
       final data = jsonDecode(response.body) as Map<String, dynamic>;

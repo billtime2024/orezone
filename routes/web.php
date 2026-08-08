@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\OrezoneController;
 use App\Http\Controllers\PortalController;
+use App\Http\Controllers\PortalRentalController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -40,6 +41,14 @@ Route::middleware(['auth', 'can:access-admin'])->controller(OrezoneController::c
     Route::get('/admin/sos', 'admin_sos')->name('admin.sos');
     Route::get('/admin/profile', 'admin_profile')->name('admin.profile');
     Route::get('/admin/change-password', 'admin_change_password')->name('admin.change-password');
+});
+
+// Admin Rental Module Routes
+Route::middleware(['auth', 'can:access-admin'])->group(function () {
+    Route::get('/admin/rentals', [App\Http\Controllers\AdminRentalController::class, 'index'])->name('admin.rentals');
+    Route::get('/admin/rentals/{listing}', [App\Http\Controllers\AdminRentalController::class, 'show'])->name('admin.rentals.show');
+    Route::get('/admin/rentals-bookings', [App\Http\Controllers\AdminRentalBookingController::class, 'index'])->name('admin.rentals-bookings');
+    Route::get('/admin/rentals-bookings/{booking}', [App\Http\Controllers\AdminRentalBookingController::class, 'show'])->name('admin.rentals-bookings.show');
 });
 
 // Portal routes — authenticated users only
@@ -82,4 +91,28 @@ Route::middleware(['auth'])->controller(PortalController::class)->group(function
     // Wallet & Profile
     Route::get('/portal/wallet', 'wallet')->name('portal.wallet');
     Route::get('/portal/profile', 'profile')->name('portal.profile');
+});
+
+// Portal Rental Module Routes
+Route::middleware(['auth'])->controller(PortalRentalController::class)->group(function () {
+    // Browse
+    Route::get('/portal/rentals', 'index')->name('portal.rentals');
+    Route::get('/portal/rentals/my', 'myListings')->name('portal.rentals.my');
+    Route::get('/portal/rentals/create', 'create')->name('portal.rentals.create');
+    Route::post('/portal/rentals', 'store')->name('portal.rentals.store');
+    Route::get('/portal/rentals/{listing}/edit', 'edit')->name('portal.rentals.edit');
+    Route::put('/portal/rentals/{listing}', 'update')->name('portal.rentals.update');
+    Route::delete('/portal/rentals/{listing}', 'destroy')->name('portal.rentals.destroy');
+    Route::post('/portal/rentals/{listing}/toggle-status', 'toggleStatus')->name('portal.rentals.toggle');
+    Route::get('/portal/rentals/{listing}', 'show')->name('portal.rentals.show');
+    Route::get('/portal/rentals/{listing}/calendar', 'calendar')->name('portal.rentals.calendar');
+
+    // Bookings
+    Route::post('/portal/rentals/{listing}/bookings', 'storeBooking')->name('portal.rentals.bookings.store')->middleware('throttle:10,1');
+    Route::get('/portal/rentals-bookings', 'myBookings')->name('portal.rentals-bookings');
+    Route::get('/portal/owner/rentals-bookings', 'ownerBookings')->name('portal.owner.rentals-bookings');
+    Route::post('/portal/rentals-bookings/{booking}/confirm', 'confirmBooking')->name('portal.rentals-bookings.confirm');
+    Route::post('/portal/rentals-bookings/{booking}/reject', 'rejectBooking')->name('portal.rentals-bookings.reject');
+    Route::post('/portal/rentals-bookings/{booking}/cancel', 'cancelBooking')->name('portal.rentals-bookings.cancel');
+    Route::post('/portal/rentals-bookings/{booking}/host-cancel', 'hostCancelBooking')->name('portal.rentals-bookings.host-cancel');
 });

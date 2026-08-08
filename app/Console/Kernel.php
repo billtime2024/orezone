@@ -13,6 +13,9 @@ class Kernel extends ConsoleKernel
     protected function schedule(Schedule $schedule): void
     {
         // $schedule->command('inspire')->hourly();
+
+        // Auto-transition rental bookings every 15 minutes
+        $schedule->command('rental:status-check')->everyFifteenMinutes();
     }
 
     /**

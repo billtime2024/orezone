@@ -7,7 +7,7 @@ export default {
         return {
             sidebarOpen: true,
             userDropdownOpen: false,
-            openMenus: ['ride-module'],
+            openMenus: ['ride-module', 'rental-module'],
             navItems: [
                 { label: 'Dashboard', href: '/portal', icon: 'ri-dashboard-line' },
                 {
@@ -18,6 +18,17 @@ export default {
                         { label: 'My Trips', href: '/portal/trips' },
                         { label: 'Search Trips', href: '/portal/trips/search' },
                         { label: 'My Bookings', href: '/portal/bookings' },
+                    ],
+                },
+                {
+                    label: 'Rentals',
+                    href: '/portal/rentals',
+                    icon: 'ri-home-4-line',
+                    children: [
+                        { label: 'Browse Rentals', href: '/portal/rentals' },
+                        { label: 'My Listings', href: '/portal/rentals/my' },
+                        { label: 'My Bookings', href: '/portal/rentals-bookings' },
+                        { label: 'Owner Bookings', href: '/portal/owner/rentals-bookings' },
                     ],
                 },
                 { label: 'Vehicles', href: '/portal/vehicles', icon: 'ri-car-line' },
