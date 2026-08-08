@@ -27,12 +27,14 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     protected $fillable = [
         'name',
+        'email',
         'phone',
         'phone_verified_at',
         'preferred_language',
         'status',
         'avatar_path',
         'last_login_at',
+        'is_admin',
     ];
 
     /**
@@ -57,6 +59,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'email_verified_at' => 'datetime',
         'phone_verified_at' => 'datetime',
         'last_login_at' => 'datetime',
+        'is_admin' => 'boolean',
         'password' => 'hashed',
     ];
 
