@@ -42,5 +42,13 @@ class FortifyServiceProvider extends ServiceProvider
         RateLimiter::for('two-factor', function (Request $request) {
             return Limit::perMinute(5)->by($request->session()->get('login.id'));
         });
+
+        RateLimiter::for('otp', function (Request $request) {
+            return Limit::perMinute(5)->by($request->input('phone', $request->ip()));
+        });
+
+        RateLimiter::for('otp-verify', function (Request $request) {
+            return Limit::perMinute(10)->by($request->input('phone', $request->ip()));
+        });
     }
 }

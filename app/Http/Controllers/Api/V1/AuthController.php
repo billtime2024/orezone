@@ -9,6 +9,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
@@ -17,7 +18,7 @@ class AuthController extends Controller
      * Send OTP to the given phone number.
      *
      * Creates or finds a user by phone and generates a 6-digit OTP
-     * stored in cache for 5 minutes.
+     * stored as a hash in cache for 5 minutes.
      */
     public function sendOtp(Request $request): JsonResponse
     {
@@ -38,19 +39,17 @@ class AuthController extends Controller
 
         $otp = random_int(100000, 999999);
 
-        Cache::put("otp:{$phone}", $otp, now()->addMinutes(5));
+        // Store a hash of the OTP, not the plaintext, to limit exposure if cache is dumped.
+        Cache::put("otp:{$phone}", Hash::make((string) $otp), now()->addMinutes(5));
 
-        $response = [
+        // Track send count per phone to prevent abuse.
+        $sendCountKey = "otp:send_count:{$phone}";
+        Cache::put($sendCountKey, Cache::get($sendCountKey, 0) + 1, now()->addMinutes(5));
+
+        return response()->json([
             'message' => 'OTP sent successfully',
             'phone'   => $phone,
-        ];
-
-        // Only return OTP in local environment (for development)
-        if (app()->environment('local', 'testing')) {
-            $response['otp_for_dev'] = $otp;
-        }
-
-        return response()->json($response);
+        ]);
     }
 
     /**
@@ -69,9 +68,24 @@ class AuthController extends Controller
         $phone = $request->input('phone');
         $otp   = $request->input('otp');
 
-        $cachedOtp = Cache::get("otp:{$phone}");
+        // Enforce max 5 verify attempts per phone before forcing a new OTP.
+        $attemptKey = "otp:attempts:{$phone}";
+        $attempts = (int) Cache::get($attemptKey, 0);
 
-        if ($cachedOtp === null || (string) $cachedOtp !== (string) $otp) {
+        if ($attempts >= 5) {
+            Cache::forget("otp:{$phone}");
+            Cache::forget($attemptKey);
+
+            throw ValidationException::withMessages([
+                'otp' => ['Too many failed attempts. Please request a new OTP.'],
+            ]);
+        }
+
+        $hashedOtp = Cache::get("otp:{$phone}");
+
+        if ($hashedOtp === null || !Hash::check((string) $otp, $hashedOtp)) {
+            Cache::put($attemptKey, $attempts + 1, now()->addMinutes(5));
+
             throw ValidationException::withMessages([
                 'otp' => ['The provided OTP is invalid or has expired.'],
             ]);
@@ -82,13 +96,14 @@ class AuthController extends Controller
 
         try {
             $user = User::where('phone', $phone)->firstOrFail();
-
             $user->update([
                 'phone_verified_at' => now(),
             ]);
 
-            // Delete the OTP from cache
+            // Delete the OTP and related counters from cache
             Cache::forget("otp:{$phone}");
+            Cache::forget($attemptKey);
+            Cache::forget("otp:send_count:{$phone}");
 
             // Create Sanctum token
             $tokenResult = $user->createToken('auth-token');

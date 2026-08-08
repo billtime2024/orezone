@@ -26,8 +26,8 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('v1')->group(function () {
 
     // ── Public Routes ──────────────────────────────────────────────
-    Route::post('auth/send-otp', [AuthController::class, 'sendOtp']);
-    Route::post('auth/verify-otp', [AuthController::class, 'verifyOtp']);
+    Route::post('auth/send-otp', [AuthController::class, 'sendOtp'])->middleware('throttle:otp');
+    Route::post('auth/verify-otp', [AuthController::class, 'verifyOtp'])->middleware('throttle:otp-verify');
 
     // ── Protected Routes ───────────────────────────────────────────
     Route::middleware('auth:sanctum')->group(function () {
