@@ -17,8 +17,8 @@ import {
 export default {
   data() {
     return {
-      email: "admin@themesbrand.com",
-      password: "123456",
+      email: "",
+      password: "",
       submitted: false,
       authError: null,
       tryingToLogIn: false,
@@ -45,17 +45,8 @@ export default {
 
     async signinapi() {
       this.processing = true;
-      const result = await axios.post('https://api-node.themesbrand.website/auth/signin', {
-        email: this.email,
-        password: this.password
-      });
-      if (result.data.status == 'errors') {
-        return this.authError = result.data.data;
-      }
-      localStorage.setItem('jwt', result.data.token);
-      this.$router.push({
-        path: '/'
-      });
+      // Redirect to Laravel Fortify login
+      window.location.href = '/login';
     },
 
     // Try to log the user in with the username
@@ -144,11 +135,11 @@ export default {
             <div class="text-center mt-sm-5 mb-4 text-white-50">
               <div>
                 <Link href="/" class="d-inline-block auth-logo">
-                  <img src="@assets/images/logo-light.png" alt="" height="20" />
+                  <img src="@assets/images/logo-light.png" alt="orezone" height="20" />
                 </Link>
               </div>
               <p class="mt-3 fs-15 fw-medium">
-                Premium Admin & Dashboard Template
+                Community Sharing Platform
               </p>
             </div>
           </BCol>
@@ -160,7 +151,7 @@ export default {
               <BCardBody class="p-4">
                 <div class="text-center mt-2">
                   <h5 class="text-primary">Welcome Back !</h5>
-                  <p class="text-muted">Sign in to continue to Velzon.</p>
+                  <p class="text-muted">Sign in to continue to orezone.</p>
                 </div>
                 <div class="p-2 mt-4">
                   <b-alert v-model="authError" variant="danger" class="mt-3" dismissible>{{ authError }}</b-alert>
@@ -253,8 +244,7 @@ export default {
           <BCol lg="12">
             <div class="text-center">
               <p class="mb-0 text-muted">
-                &copy; {{ new Date().getFullYear() }} Velzon. Crafted with
-                <i class="mdi mdi-heart text-danger"></i> by Themesbrand
+                &copy; {{ new Date().getFullYear() }} orezone. Community Sharing Platform.
               </p>
             </div>
           </BCol>

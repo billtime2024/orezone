@@ -61,19 +61,8 @@ export default {
       this.submitted = true;
       // stop here if form is invalid
       this.v$.$touch();
-      const result = await axios.post('https://api-node.themesbrand.website/auth/signup', {
-        email: this.user.email,
-        password: this.user.password,
-        confirm_password: this.user.confirm_password
-      });
-      if (result.data.status == 'errors') {
-        this.isRegisterError = true;
-        return this.regError = result.data.message;
-      }
-      localStorage.setItem('jwt', result.data.token);
-      this.$router.push({
-        path: '/'
-      });
+      // Redirect to Laravel Fortify register
+      window.location.href = '/register';
 
     },
   },
@@ -101,10 +90,10 @@ export default {
             <div class="text-center mt-sm-5 mb-4 text-white-50">
               <div>
                 <Link href="/" class="d-inline-block auth-logo">
-                  <img src="@assets/images/logo-light.png" alt="" height="20">
+                  <img src="@assets/images/logo-light.png" alt="orezone" height="20">
                 </Link>
               </div>
-              <p class="mt-3 fs-15 fw-medium">Premium Admin & Dashboard Template</p>
+              <p class="mt-3 fs-15 fw-medium">Community Sharing Platform</p>
             </div>
           </BCol>
         </BRow>
@@ -116,7 +105,7 @@ export default {
               <BCardBody class="p-4">
                 <div class="text-center mt-2">
                   <h5 class="text-primary">Create New Account</h5>
-                  <p class="text-muted">Get your free velzon account now</p>
+                  <p class="text-muted">Create your orezone account</p>
                 </div>
                 <div class="p-2 mt-4">
                   <form class="needs-validation" @submit.prevent="tryToRegisterIn">
@@ -176,7 +165,7 @@ export default {
                     </div>
 
                     <div class="mb-4">
-                      <p class="mb-0 fs-12 text-muted fst-italic">By registering you agree to the Velzon <BLink
+                      <p class="mb-0 fs-12 text-muted fst-italic">By registering you agree to the orezone <BLink
                           href="#" class="text-primary text-decoration-underline fst-normal fw-medium">Terms of Use
                         </BLink>
                       </p>
@@ -223,8 +212,7 @@ export default {
         <BRow>
           <BCol lg="12">
             <div class="text-center">
-              <p class="mb-0 text-muted">&copy; {{ new Date().getFullYear() }} Velzon. Crafted with <i
-                  class="mdi mdi-heart text-danger"></i> by Themesbrand</p>
+              <p class="mb-0 text-muted">&copy; {{ new Date().getFullYear() }} orezone. Community Sharing Platform.</p>
             </div>
           </BCol>
         </BRow>
