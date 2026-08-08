@@ -56,6 +56,18 @@ Route::middleware(['auth', 'can:access-admin'])->group(function () {
     Route::get('/admin/rentals-bookings/{booking}', [App\Http\Controllers\AdminRentalBookingController::class, 'show'])->name('admin.rentals-bookings.show');
 });
 
+// Admin Notification Routes
+Route::middleware(['auth', 'can:access-admin'])->group(function () {
+    Route::get('/admin/notifications', [App\Http\Controllers\AdminNotificationController::class, 'index'])->name('admin.notifications');
+    Route::patch('/admin/notifications/{notification}/read', [App\Http\Controllers\AdminNotificationController::class, 'markAsRead'])->name('admin.notifications.read');
+    Route::patch('/admin/notifications/read-all', [App\Http\Controllers\AdminNotificationController::class, 'markAllAsRead'])->name('admin.notifications.read-all');
+});
+
+// Admin Wallet Transaction Routes
+Route::middleware(['auth', 'can:access-admin'])->group(function () {
+    Route::get('/admin/wallet-transactions', [App\Http\Controllers\AdminWalletTransactionController::class, 'index'])->name('admin.wallet-transactions');
+});
+
 // Portal routes — authenticated users only
 Route::middleware(['auth'])->controller(PortalController::class)->group(function () {
     // Dashboard

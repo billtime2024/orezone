@@ -20,7 +20,7 @@ class TripServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->service = new TripService();
+        $this->service = app(TripService::class);
         $this->host = User::factory()->create();
         $category = VehicleCategory::create(['name' => 'Sedan', 'slug' => 'sedan']);
         $this->vehicle = Vehicle::factory()->create([

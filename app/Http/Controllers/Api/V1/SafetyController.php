@@ -117,4 +117,50 @@ class SafetyController extends Controller
             'data' => new SosAlertResource($sos),
         ], 201);
     }
+
+    /**
+     * DELETE /users/{user}/unblock — Unblock a previously blocked user.
+     */
+    public function unblockUser(Request $request, User $user): JsonResponse
+    {
+        $blocked = BlockedUser::where('user_id', $request->user()->id)
+            ->where('blocked_user_id', $user->id)
+            ->first();
+
+        if (!$blocked) {
+            return response()->json([
+                'message' => 'User is not blocked.',
+            ], 404);
+        }
+
+        $blocked->delete();
+
+        return response()->json([
+            'message' => 'User unblocked successfully.',
+        ]);
+    }
+
+    /**
+     * GET /blocked-users — List users blocked by the authenticated user.
+     */
+    public function blockedUsers(Request $request): JsonResponse
+    {
+        $blockedUsers = BlockedUser::where('user_id', $request->user()->id)
+            ->with('blockedUser:id,name,email')
+            ->orderByDesc('created_at')
+            ->get()
+            ->map(fn ($block) => [
+                'id' => $block->id,
+                'blocked_user' => $block->blockedUser ? [
+                    'id' => $block->blockedUser->id,
+                    'name' => $block->blockedUser->name,
+                    'email' => $block->blockedUser->email,
+                ] : null,
+                'created_at' => $block->created_at,
+            ]);
+
+        return response()->json([
+            'data' => $blockedUsers,
+        ]);
+    }
 }

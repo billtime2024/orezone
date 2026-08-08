@@ -24,7 +24,7 @@ class WalletServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->service = new WalletService();
+        $this->service = app(WalletService::class);
         $this->user = User::factory()->create();
     }
 
@@ -94,7 +94,7 @@ class WalletServiceTest extends TestCase
             'seating_capacity' => 4,
         ]);
 
-        $tripService = new TripService();
+        $tripService = app(TripService::class);
         $trip = $tripService->createDraft($host, [
             'vehicle_id' => $vehicle->id,
             'origin_name' => 'Chennai',
@@ -106,7 +106,7 @@ class WalletServiceTest extends TestCase
         $tripService->publishTrip($trip, $host);
         $trip->refresh(); // Must refresh after publish to pick up new status
 
-        $bookingService = new BookingService();
+        $bookingService = app(BookingService::class);
         $booking = $bookingService->createBooking($trip, $this->user, [
             'seat_count' => 1,
         ]);

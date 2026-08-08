@@ -17,6 +17,8 @@ class Trip extends Model
 
     const STATUS_PUBLISHED = 'published';
 
+    const STATUS_FULL = 'full';
+
     const STATUS_ACTIVE = 'active';
 
     const STATUS_IN_PROGRESS = 'in_progress';
@@ -28,6 +30,7 @@ class Trip extends Model
     const STATUSES = [
         self::STATUS_DRAFT,
         self::STATUS_PUBLISHED,
+        self::STATUS_FULL,
         self::STATUS_ACTIVE,
         self::STATUS_IN_PROGRESS,
         self::STATUS_COMPLETED,
@@ -167,12 +170,17 @@ class Trip extends Model
 
     public function canBeCancelled(): bool
     {
-        return in_array($this->status, [self::STATUS_DRAFT, self::STATUS_PUBLISHED]);
+        return in_array($this->status, [
+            self::STATUS_DRAFT,
+            self::STATUS_PUBLISHED,
+            self::STATUS_FULL,
+        ]);
     }
 
     public function canBeStarted(): bool
     {
-        return $this->status === self::STATUS_PUBLISHED && $this->available_seats === 0;
+        return in_array($this->status, [self::STATUS_PUBLISHED, self::STATUS_FULL])
+            && $this->available_seats === 0;
     }
 
     public function canBeCompleted(): bool

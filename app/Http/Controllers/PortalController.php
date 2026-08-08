@@ -4,16 +4,25 @@ namespace App\Http\Controllers;
 
 use App\Models\Booking;
 use App\Models\Trip;
-use App\Models\TripStop;
 use App\Models\Vehicle;
 use App\Models\VehicleCategory;
+use App\Services\RideSharing\TripService;
+use App\Services\RideSharing\BookingService;
+use App\Services\RideSharing\WalletService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
+use InvalidArgumentException;
 
 class PortalController extends Controller
 {
+    public function __construct(
+        private readonly TripService $tripService,
+        private readonly BookingService $bookingService,
+        private readonly WalletService $walletService,
+    ) {}
+
     /**
      * Portal dashboard.
      */
@@ -102,13 +111,20 @@ class PortalController extends Controller
             'seating_capacity' => 'required|integer|min:1|max:20',
         ]);
 
-        $validated['user_id'] = $request->user()->id;
-        $validated['verification_status'] = 'pending';
-        $validated['is_active'] = true;
+        $vehicle = Vehicle::create([
+            'user_id' => $request->user()->id,
+            'vehicle_category_id' => $validated['vehicle_category_id'],
+            'registration_number' => $validated['registration_number'],
+            'brand' => $validated['brand'],
+            'model' => $validated['model'],
+            'year' => $validated['year'],
+            'color' => $validated['color'] ?? null,
+            'seating_capacity' => $validated['seating_capacity'],
+            'verification_status' => 'pending',
+            'is_active' => true,
+        ]);
 
-        Vehicle::create($validated);
-
-        return redirect()->route('portal.vehicles')->with('success', 'Vehicle added successfully.');
+        return redirect()->route('portal.vehicles.show', $vehicle)->with('success', 'Vehicle added successfully.');
     }
 
     /**
@@ -120,35 +136,11 @@ class PortalController extends Controller
             abort(403, 'This vehicle does not belong to you.');
         }
 
-        $vehicle->load(['category', 'documents']);
-
-        $vehicleData = [
-            'id' => $vehicle->id,
-            'vehicle_category_id' => $vehicle->vehicle_category_id,
-            'registration_number' => $vehicle->registration_number,
-            'brand' => $vehicle->brand,
-            'model' => $vehicle->model,
-            'year' => $vehicle->year,
-            'color' => $vehicle->color,
-            'seating_capacity' => $vehicle->seating_capacity,
-            'verification_status' => $vehicle->verification_status,
-            'is_active' => $vehicle->is_active,
-            'category' => $vehicle->category ? [
-                'id' => $vehicle->category->id,
-                'name' => $vehicle->category->name,
-            ] : null,
-            'documents' => $vehicle->documents->map(fn ($d) => [
-                'id' => $d->id,
-                'type' => $d->type ?? 'Document',
-                'status' => $d->status ?? 'uploaded',
-            ]),
-            'created_at' => $vehicle->created_at,
-            'updated_at' => $vehicle->updated_at,
-        ];
+        $vehicle->load('category');
 
         return Inertia::render('portal/vehicles/show', [
             'user' => $request->user(),
-            'vehicle' => $vehicleData,
+            'vehicle' => $vehicle,
         ]);
     }
 
@@ -160,8 +152,6 @@ class PortalController extends Controller
         if ($vehicle->user_id !== $request->user()->id) {
             abort(403, 'This vehicle does not belong to you.');
         }
-
-        $vehicle->load('category');
 
         $categories = VehicleCategory::where('is_active', true)
             ->get()
@@ -202,12 +192,20 @@ class PortalController extends Controller
     }
 
     /**
-     * Delete a vehicle.
+     * Delete a vehicle (only if no active trips).
      */
     public function destroyVehicle(Request $request, Vehicle $vehicle)
     {
         if ($vehicle->user_id !== $request->user()->id) {
             abort(403, 'This vehicle does not belong to you.');
+        }
+
+        $hasActiveTrips = $vehicle->trips()
+            ->whereIn('status', ['draft', 'published', 'in_progress'])
+            ->exists();
+
+        if ($hasActiveTrips) {
+            return back()->withErrors(['vehicle' => 'Cannot delete vehicle with active trips.']);
         }
 
         $vehicle->delete();
@@ -224,9 +222,9 @@ class PortalController extends Controller
             abort(403, 'This vehicle does not belong to you.');
         }
 
-        $vehicle->update(['verification_status' => 'pending']);
+        $vehicle->update(['verification_status' => 'pending_review']);
 
-        return redirect()->route('portal.vehicles.show', $vehicle)->with('success', 'Vehicle submitted for verification.');
+        return back()->with('success', 'Vehicle submitted for verification.');
     }
 
     // ── Trip Routes ───────────────────────────────────────────────
@@ -246,15 +244,18 @@ class PortalController extends Controller
                 'origin_name' => $trip->origin_name,
                 'destination_name' => $trip->destination_name,
                 'departure_at' => $trip->departure_at,
-                'status' => $trip->status,
                 'total_seats' => $trip->total_seats,
                 'available_seats' => $trip->available_seats,
                 'booking_mode' => $trip->booking_mode,
+                'status' => $trip->status,
                 'vehicle' => $trip->vehicle ? [
-                    'id' => $trip->vehicle->id,
                     'brand' => $trip->vehicle->brand,
                     'model' => $trip->vehicle->model,
+                    'category' => $trip->vehicle->category ? [
+                        'name' => $trip->vehicle->category->name,
+                    ] : null,
                 ] : null,
+                'created_at' => $trip->created_at,
             ]);
 
         return Inertia::render('portal/trips/index', [
@@ -264,51 +265,25 @@ class PortalController extends Controller
     }
 
     /**
-     * Search published trips.
+     * Search published trips (for booking).
      */
     public function searchTrips(Request $request)
     {
-        $query = Trip::published()
-            ->with(['host', 'vehicle.category', 'stops'])
-            ->where('available_seats', '>', 0);
+        $filters = array_filter([
+            'origin' => $request->input('origin'),
+            'destination' => $request->input('destination'),
+            'departure_date' => $request->input('departure_date'),
+            'min_seats' => $request->input('min_seats'),
+            'booking_mode' => $request->input('booking_mode'),
+            'per_page' => $request->integer('per_page', 15),
+        ], fn ($v) => $v !== null && $v !== '');
 
-        if ($request->filled('origin')) {
-            $query->where('origin_name', 'like', '%' . $request->input('origin') . '%');
-        }
-
-        if ($request->filled('destination')) {
-            $query->where('destination_name', 'like', '%' . $request->input('destination') . '%');
-        }
-
-        if ($request->filled('departure_date')) {
-            $query->whereDate('departure_at', $request->input('departure_date'));
-        }
-
-        $trips = $query->orderBy('departure_at')
-            ->paginate(max(1, min(50, $request->integer('per_page', 15))))
-            ->through(fn ($trip) => [
-                'id' => $trip->id,
-                'origin_name' => $trip->origin_name,
-                'destination_name' => $trip->destination_name,
-                'departure_at' => $trip->departure_at,
-                'status' => $trip->status,
-                'total_seats' => $trip->total_seats,
-                'available_seats' => $trip->available_seats,
-                'booking_mode' => $trip->booking_mode,
-                'host' => $trip->host ? [
-                    'id' => $trip->host->id,
-                    'name' => $trip->host->name,
-                ] : null,
-                'vehicle' => $trip->vehicle ? [
-                    'brand' => $trip->vehicle->brand,
-                    'model' => $trip->vehicle->model,
-                ] : null,
-            ]);
+        $trips = $this->tripService->searchTrips($filters);
 
         return Inertia::render('portal/trips/search', [
             'user' => $request->user(),
             'trips' => $trips,
-            'filters' => $request->only(['origin', 'destination', 'departure_date']),
+            'filters' => $request->only(['origin', 'destination', 'departure_date', 'min_seats', 'booking_mode']),
         ]);
     }
 
@@ -319,7 +294,7 @@ class PortalController extends Controller
     {
         $vehicles = $request->user()
             ->vehicles()
-            ->where('verification_status', 'approved')
+            ->where('verification_status', 'verified')
             ->where('is_active', true)
             ->get()
             ->map(fn ($v) => [
@@ -337,12 +312,10 @@ class PortalController extends Controller
     }
 
     /**
-     * Store a new trip (as draft).
+     * Store a new trip (uses TripService).
      */
     public function storeTrip(Request $request)
     {
-        $user = $request->user();
-
         $validated = $request->validate([
             'vehicle_id' => 'required|exists:vehicles,id',
             'origin_name' => 'required|string|max:255',
@@ -353,29 +326,13 @@ class PortalController extends Controller
             'notes' => 'nullable|string|max:1000',
         ]);
 
-        // Verify vehicle belongs to user
-        $vehicle = Vehicle::where('id', $validated['vehicle_id'])
-            ->where('user_id', $user->id)
-            ->first();
+        try {
+            $trip = $this->tripService->createDraft($request->user(), $validated);
 
-        if (! $vehicle) {
-            return back()->withErrors(['vehicle_id' => 'Vehicle does not belong to you.']);
+            return redirect()->route('portal.trips.show', $trip)->with('success', 'Trip created successfully as draft.');
+        } catch (InvalidArgumentException $e) {
+            return back()->withErrors(['vehicle_id' => $e->getMessage()]);
         }
-
-        $trip = Trip::create([
-            'host_id' => $user->id,
-            'vehicle_id' => $vehicle->id,
-            'origin_name' => $validated['origin_name'],
-            'destination_name' => $validated['destination_name'],
-            'departure_at' => $validated['departure_at'],
-            'total_seats' => $validated['total_seats'],
-            'available_seats' => $validated['total_seats'],
-            'booking_mode' => $validated['booking_mode'],
-            'notes' => $validated['notes'] ?? null,
-            'status' => 'draft',
-        ]);
-
-        return redirect()->route('portal.trips.show', $trip)->with('success', 'Trip created successfully as draft.');
     }
 
     /**
@@ -474,7 +431,7 @@ class PortalController extends Controller
 
         $vehicles = $request->user()
             ->vehicles()
-            ->where('verification_status', 'approved')
+            ->where('verification_status', 'verified')
             ->where('is_active', true)
             ->get()
             ->map(fn ($v) => [
@@ -493,18 +450,10 @@ class PortalController extends Controller
     }
 
     /**
-     * Update a trip (draft only).
+     * Update a trip (uses TripService).
      */
     public function updateTrip(Request $request, Trip $trip)
     {
-        if ($trip->host_id !== $request->user()->id) {
-            abort(403, 'This trip does not belong to you.');
-        }
-
-        if ($trip->status !== 'draft') {
-            return back()->withErrors(['status' => 'Only draft trips can be updated.']);
-        }
-
         $validated = $request->validate([
             'vehicle_id' => 'required|exists:vehicles,id',
             'origin_name' => 'required|string|max:255',
@@ -515,132 +464,83 @@ class PortalController extends Controller
             'notes' => 'nullable|string|max:1000',
         ]);
 
-        // Verify vehicle belongs to user
-        $vehicle = Vehicle::where('id', $validated['vehicle_id'])
-            ->where('user_id', $request->user()->id)
-            ->first();
+        try {
+            $this->tripService->updateDraft($trip, $request->user(), $validated);
 
-        if (! $vehicle) {
-            return back()->withErrors(['vehicle_id' => 'Vehicle does not belong to you.']);
+            return redirect()->route('portal.trips.show', $trip)->with('success', 'Trip updated successfully.');
+        } catch (InvalidArgumentException $e) {
+            return back()->withErrors(['status' => $e->getMessage()]);
         }
-
-        // Recalculate available seats
-        $bookedSeats = $trip->bookings()->where('status', 'confirmed')->sum('seat_count');
-        if ($bookedSeats > $validated['total_seats']) {
-            return back()->withErrors(['total_seats' => 'Cannot reduce below confirmed seats ('.$bookedSeats.').']);
-        }
-        $validated['available_seats'] = $validated['total_seats'] - $bookedSeats;
-        $validated['vehicle_id'] = $vehicle->id;
-
-        $trip->update($validated);
-
-        return redirect()->route('portal.trips.show', $trip)->with('success', 'Trip updated successfully.');
     }
 
     /**
-     * Delete a trip (draft only).
+     * Delete a trip (uses TripService).
      */
     public function destroyTrip(Request $request, Trip $trip)
     {
-        if ($trip->host_id !== $request->user()->id) {
-            abort(403, 'This trip does not belong to you.');
+        try {
+            $this->tripService->deleteDraft($trip, $request->user());
+
+            return redirect()->route('portal.trips')->with('success', 'Trip deleted successfully.');
+        } catch (InvalidArgumentException $e) {
+            return back()->withErrors(['status' => $e->getMessage()]);
         }
-
-        if ($trip->status !== 'draft') {
-            return back()->withErrors(['status' => 'Only draft trips can be deleted.']);
-        }
-
-        $trip->delete();
-
-        return redirect()->route('portal.trips')->with('success', 'Trip deleted successfully.');
     }
 
     /**
-     * Publish a draft trip.
+     * Publish a draft trip (uses TripService).
      */
     public function publishTrip(Request $request, Trip $trip)
     {
-        if ($trip->host_id !== $request->user()->id) {
-            abort(403, 'This trip does not belong to you.');
+        try {
+            $this->tripService->publishTrip($trip, $request->user());
+
+            return redirect()->route('portal.trips.show', $trip)->with('success', 'Trip published successfully.');
+        } catch (InvalidArgumentException $e) {
+            return back()->withErrors(['status' => $e->getMessage()]);
         }
-
-        if (! $trip->canBePublished()) {
-            return back()->withErrors(['status' => 'Only draft trips can be published.']);
-        }
-
-        $trip->update(['status' => 'published']);
-
-        return redirect()->route('portal.trips.show', $trip)->with('success', 'Trip published successfully.');
     }
 
     /**
-     * Cancel a trip.
+     * Cancel a trip (uses TripService).
      */
     public function cancelTrip(Request $request, Trip $trip)
     {
-        if ($trip->host_id !== $request->user()->id) {
-            abort(403, 'This trip does not belong to you.');
+        try {
+            $this->tripService->cancelTrip($trip, $request->user());
+
+            return redirect()->route('portal.trips.show', $trip)->with('success', 'Trip cancelled successfully.');
+        } catch (InvalidArgumentException $e) {
+            return back()->withErrors(['status' => $e->getMessage()]);
         }
-
-        if (! $trip->canBeCancelled()) {
-            return back()->withErrors(['status' => 'This trip cannot be cancelled in its current status.']);
-        }
-
-        DB::transaction(function () use ($trip) {
-            $trip->update(['status' => 'cancelled']);
-
-            // Cancel pending/requested bookings
-            $trip->bookings()->whereIn('status', ['requested', 'confirmed'])->each(function ($booking) use ($trip) {
-                if ($booking->status === 'confirmed') {
-                    $trip->increment('available_seats', $booking->seat_count);
-                }
-                $booking->update(['status' => 'cancelled']);
-            });
-        });
-
-        return redirect()->route('portal.trips.show', $trip)->with('success', 'Trip cancelled successfully.');
     }
 
     /**
-     * Start a trip (published + fully booked → in_progress).
+     * Start a trip (uses TripService).
      */
     public function startTrip(Request $request, Trip $trip)
     {
-        if ($trip->host_id !== $request->user()->id) {
-            abort(403, 'This trip does not belong to you.');
+        try {
+            $this->tripService->startTrip($trip, $request->user());
+
+            return redirect()->route('portal.trips.show', $trip)->with('success', 'Trip started successfully.');
+        } catch (InvalidArgumentException $e) {
+            return back()->withErrors(['status' => $e->getMessage()]);
         }
-
-        if (! $trip->canBeStarted()) {
-            return back()->withErrors(['status' => 'Trip can only be started when published and fully booked.']);
-        }
-
-        $trip->update(['status' => 'in_progress']);
-
-        return redirect()->route('portal.trips.show', $trip)->with('success', 'Trip started successfully.');
     }
 
     /**
-     * Complete a trip.
+     * Complete a trip (uses TripService).
      */
     public function completeTrip(Request $request, Trip $trip)
     {
-        if ($trip->host_id !== $request->user()->id) {
-            abort(403, 'This trip does not belong to you.');
+        try {
+            $this->tripService->completeTrip($trip, $request->user());
+
+            return redirect()->route('portal.trips.show', $trip)->with('success', 'Trip completed successfully.');
+        } catch (InvalidArgumentException $e) {
+            return back()->withErrors(['status' => $e->getMessage()]);
         }
-
-        if (! $trip->canBeCompleted()) {
-            return back()->withErrors(['status' => 'Only in-progress trips can be completed.']);
-        }
-
-        DB::transaction(function () use ($trip) {
-            $trip->update([
-                'status' => 'completed',
-                'arrival_at' => now(),
-            ]);
-            $trip->confirmedBookings()->update(['status' => 'completed']);
-        });
-
-        return redirect()->route('portal.trips.show', $trip)->with('success', 'Trip completed successfully.');
     }
 
     /**
@@ -678,22 +578,10 @@ class PortalController extends Controller
     }
 
     /**
-     * Store a booking for a trip.
+     * Store a booking for a trip (uses BookingService).
      */
     public function storeBooking(Request $request, Trip $trip)
     {
-        $user = $request->user();
-
-        // Trip must be published
-        if ($trip->status !== 'published') {
-            return back()->withErrors(['trip' => 'This trip is not available for booking.']);
-        }
-
-        // Cannot book own trip
-        if ($trip->host_id === $user->id) {
-            return back()->withErrors(['trip' => 'You cannot book your own trip.']);
-        }
-
         $validated = $request->validate([
             'seat_count' => 'required|integer|min:1|max:20',
             'pickup_stop_id' => 'nullable|exists:trip_stops,id',
@@ -701,50 +589,13 @@ class PortalController extends Controller
             'notes' => 'nullable|string|max:1000',
         ]);
 
-        $seatCount = $validated['seat_count'];
+        try {
+            $booking = $this->bookingService->createBooking($trip, $request->user(), $validated);
 
-        // Validate stops belong to this trip
-        if (! empty($validated['pickup_stop_id']) || ! empty($validated['drop_stop_id'])) {
-            $validStopIds = $trip->stops()->pluck('id')->toArray();
-            if (! empty($validated['pickup_stop_id']) && ! in_array($validated['pickup_stop_id'], $validStopIds)) {
-                return back()->withErrors(['pickup_stop_id' => 'Selected pickup stop does not belong to this trip.']);
-            }
-            if (! empty($validated['drop_stop_id']) && ! in_array($validated['drop_stop_id'], $validStopIds)) {
-                return back()->withErrors(['drop_stop_id' => 'Selected drop-off stop does not belong to this trip.']);
-            }
+            return redirect()->route('portal.bookings.show', $booking)->with('success', 'Booking created successfully.');
+        } catch (InvalidArgumentException $e) {
+            return back()->withErrors(['trip' => $e->getMessage()]);
         }
-
-        $booking = DB::transaction(function () use ($trip, $user, $validated, $seatCount) {
-            $trip = Trip::lockForUpdate()->find($trip->id);
-
-            if ($trip->available_seats < $seatCount) {
-                throw new \App\Exceptions\InsufficientSeatsException(
-                    'Not enough seats available. Available: ' . $trip->available_seats
-                );
-            }
-
-            $bookingMode = $trip->booking_mode;
-
-            // Only decrement seats immediately for instant bookings
-            if ($bookingMode === 'instant') {
-                $trip->decrement('available_seats', $seatCount);
-            }
-
-            $status = $bookingMode === 'instant' ? 'confirmed' : 'requested';
-
-            return Booking::create([
-                'trip_id' => $trip->id,
-                'traveler_id' => $user->id,
-                'host_id' => $trip->host_id,
-                'pickup_stop_id' => $validated['pickup_stop_id'] ?? null,
-                'drop_stop_id' => $validated['drop_stop_id'] ?? null,
-                'seat_count' => $seatCount,
-                'status' => $status,
-                'notes' => $validated['notes'] ?? null,
-            ]);
-        });
-
-        return redirect()->route('portal.bookings.show', $booking)->with('success', 'Booking created successfully.');
     }
 
     // ── Booking Routes ────────────────────────────────────────────
@@ -860,79 +711,54 @@ class PortalController extends Controller
     }
 
     /**
-     * Cancel a booking.
+     * Cancel a booking (uses BookingService).
      */
     public function cancelBooking(Request $request, Booking $booking)
     {
-        $booking->load('trip');
-        $user = $request->user();
+        try {
+            $this->bookingService->cancelBooking($booking, $request->user());
 
-        if ($booking->traveler_id !== $user->id && $booking->trip->host_id !== $user->id) {
-            abort(403, 'You do not have permission to cancel this booking.');
+            return redirect()->route('portal.bookings.show', $booking)->with('success', 'Booking cancelled successfully.');
+        } catch (InvalidArgumentException $e) {
+            return back()->withErrors(['status' => $e->getMessage()]);
         }
-
-        if (! $booking->canBeCancelled()) {
-            return back()->withErrors(['status' => 'This booking cannot be cancelled in its current status.']);
-        }
-
-        $wasConfirmed = $booking->status === 'confirmed';
-
-        DB::transaction(function () use ($booking, $wasConfirmed) {
-            $booking->update(['status' => 'cancelled']);
-            if ($wasConfirmed) {
-                $trip = Trip::lockForUpdate()->find($booking->trip_id);
-                $trip->increment('available_seats', $booking->seat_count);
-            }
-        });
-
-        return redirect()->route('portal.bookings.show', $booking)->with('success', 'Booking cancelled successfully.');
     }
 
     /**
-     * Complete a booking (host only, trip must be in_progress).
+     * Complete a booking (uses BookingService).
      */
     public function completeBooking(Request $request, Booking $booking)
     {
-        $booking->load('trip');
-        $user = $request->user();
+        try {
+            $this->bookingService->completeBooking($booking, $request->user());
 
-        if ($booking->trip->host_id !== $user->id) {
-            abort(403, 'You are not the host of this trip.');
+            return redirect()->route('portal.bookings.show', $booking)->with('success', 'Booking marked as completed.');
+        } catch (InvalidArgumentException $e) {
+            return back()->withErrors(['status' => $e->getMessage()]);
         }
-
-        if (! $booking->canBeCompleted()) {
-            return back()->withErrors(['status' => 'This booking cannot be completed in its current status.']);
-        }
-
-        $booking->update(['status' => 'completed']);
-
-        return redirect()->route('portal.bookings.show', $booking)->with('success', 'Booking marked as completed.');
     }
 
     // ── Wallet & Profile ──────────────────────────────────────────
 
     /**
-     * Show the user's wallet and transaction history.
+     * Show the user's wallet and transaction history (uses WalletService).
      */
     public function wallet(Request $request)
     {
         $user = $request->user();
-        $wallet = $user->wallet;
-        $transactions = collect();
+        $wallet = $this->walletService->getOrCreateWallet($user);
 
-        if ($wallet) {
-            $transactions = $wallet->transactions()
-                ->orderByDesc('created_at')
-                ->limit(50)
-                ->get()
-                ->map(fn ($tx) => [
-                    'id' => $tx->id,
-                    'type' => $tx->type,
-                    'direction' => $tx->direction,
-                    'amount' => $tx->amount,
-                    'created_at' => $tx->created_at,
-                ]);
-        }
+        $transactions = $wallet->transactions()
+            ->orderByDesc('created_at')
+            ->limit(50)
+            ->get()
+            ->map(fn ($tx) => [
+                'id' => $tx->id,
+                'type' => $tx->type,
+                'direction' => $tx->direction,
+                'amount' => $tx->amount,
+                'created_at' => $tx->created_at,
+            ]);
 
         return Inertia::render('portal/wallet', [
             'user' => $user,

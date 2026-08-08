@@ -84,12 +84,17 @@ Route::prefix('v1')->group(function () {
         // ── Safety Routes ──────────────────────────────────────────
         Route::post('reports', [SafetyController::class, 'storeReport']);
         Route::post('users/{user}/block', [SafetyController::class, 'blockUser']);
+        Route::delete('users/{user}/unblock', [SafetyController::class, 'unblockUser']);
+        Route::get('blocked-users', [SafetyController::class, 'blockedUsers']);
         Route::post('sos', [SafetyController::class, 'triggerSos']);
 
         // ── Notification Routes ────────────────────────────────────
         Route::get('notifications', [NotificationController::class, 'index']);
         Route::patch('notifications/{notification}/read', [NotificationController::class, 'markAsRead']);
         Route::patch('notifications/read-all', [NotificationController::class, 'markAllAsRead']);
+
+        // ── Emergency Contact Routes ──────────────────────────────
+        Route::apiResource('emergency-contacts', \App\Http\Controllers\Api\V1\EmergencyContactController::class);
 
         // ── Rental Listing Routes ─────────────────────────────────
         Route::get('rentals', [RentalListingController::class, 'index']);

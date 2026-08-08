@@ -8,7 +8,6 @@ use App\Http\Requests\Api\V1\UpdateTripRequest;
 use App\Http\Resources\Api\V1\BookingResource;
 use App\Http\Resources\Api\V1\TripResource;
 use App\Models\Trip;
-use App\Models\Vehicle;
 use App\Services\RideSharing\TripService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -50,6 +49,20 @@ class TripController extends Controller
             'origin' => $request->input('origin'),
             'destination' => $request->input('destination'),
             'departure_date' => $request->input('departure_date'),
+            'departure_from' => $request->input('departure_from'),
+            'departure_to' => $request->input('departure_to'),
+            'min_seats' => $request->input('min_seats'),
+            'max_seats' => $request->input('max_seats'),
+            'booking_mode' => $request->input('booking_mode'),
+            'origin_lat' => $request->input('origin_lat'),
+            'origin_lng' => $request->input('origin_lng'),
+            'radius_km' => $request->input('radius_km'),
+            'dest_lat' => $request->input('dest_lat'),
+            'dest_lng' => $request->input('dest_lng'),
+            'dest_radius_km' => $request->input('dest_radius_km'),
+            'vehicle_category' => $request->input('vehicle_category'),
+            'sort' => $request->input('sort'),
+            'direction' => $request->input('direction'),
             'per_page' => $request->integer('per_page', 15),
         ], fn ($v) => $v !== null && $v !== '');
 
@@ -94,47 +107,27 @@ class TripController extends Controller
     }
 
     /**
-     * PATCH /trips/{trip} — Update draft trip only.
+     * PATCH /trips/{trip} — Update draft trip only (uses TripService).
      */
     public function update(UpdateTripRequest $request, Trip $trip): JsonResponse
     {
         $this->authorize('update', $trip);
 
-        $data = $request->validated();
+        try {
+            $trip = $this->tripService->updateDraft(
+                $trip,
+                $request->user(),
+                $request->validated()
+            );
 
-        // Validate vehicle ownership if vehicle_id is being changed
-        if (isset($data['vehicle_id'])) {
-            $vehicle = Vehicle::where('id', $data['vehicle_id'])
-                ->where('user_id', $request->user()->id)
-                ->first();
+            $trip->load(['host', 'vehicle.category', 'stops']);
 
-            if (! $vehicle) {
-                return response()->json([
-                    'message' => 'Vehicle does not belong to you.',
-                ], 403);
-            }
+            return response()->json(new TripResource($trip));
+        } catch (InvalidArgumentException $e) {
+            return response()->json([
+                'message' => $e->getMessage(),
+            ], 422);
         }
-
-        // Safely recalculate available_seats when total_seats changes
-        if (isset($data['total_seats']) && $data['total_seats'] !== $trip->total_seats) {
-            $newTotal = $data['total_seats'];
-            $bookedSeats = $trip->bookings()
-                ->where('status', 'confirmed')
-                ->sum('seat_count');
-
-            if ($bookedSeats > $newTotal) {
-                return response()->json([
-                    'message' => 'Cannot reduce total_seats below the number of already confirmed seats ('.$bookedSeats.').',
-                ], 422);
-            }
-
-            $data['available_seats'] = $newTotal - $bookedSeats;
-        }
-
-        $trip->update($data);
-        $trip->load(['host', 'vehicle.category', 'stops']);
-
-        return response()->json(new TripResource($trip));
     }
 
     /**

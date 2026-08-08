@@ -24,8 +24,8 @@ class BookingServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->bookingService = new BookingService();
-        $this->tripService = new TripService();
+        $this->bookingService = app(BookingService::class);
+        $this->tripService = app(TripService::class);
         $this->host = User::factory()->create();
         $this->traveler = User::factory()->create();
         $category = VehicleCategory::create(['name' => 'Sedan', 'slug' => 'sedan']);

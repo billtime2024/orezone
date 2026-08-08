@@ -6,6 +6,7 @@ use App\Models\Booking;
 use App\Models\BookingStatusHistory;
 use App\Models\Trip;
 use App\Models\User;
+use App\Models\Wallet;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use App\Events\BookingAccepted;
@@ -15,6 +16,11 @@ use InvalidArgumentException;
 
 class BookingService
 {
+    public function __construct(
+        private readonly CancellationPolicy $cancellationPolicy,
+        private readonly TripService $tripService,
+    ) {}
+
     /**
      * Create a new booking on a trip.
      *
@@ -25,8 +31,12 @@ class BookingService
      */
     public function createBooking(Trip $trip, User $traveler, array $data): Booking
     {
-        // Basic pre-transaction validations
-        if ($trip->status !== Trip::STATUS_PUBLISHED) {
+        $seatCount = $data['seat_count'] ?? 1;
+        $idempotencyKey = $data['idempotency_key'] ?? Str::uuid()->toString();
+
+        // Basic pre-transaction validations (fast-fail before acquiring locks)
+        // Allow 'full' trips for idempotency — duplicate request should return existing booking
+        if (!in_array($trip->status, [Trip::STATUS_PUBLISHED, Trip::STATUS_FULL])) {
             throw new InvalidArgumentException('Trip is not available for booking.');
         }
 
@@ -34,19 +44,22 @@ class BookingService
             throw new InvalidArgumentException('You cannot book your own trip.');
         }
 
-        $seatCount = $data['seat_count'] ?? 1;
-
         if ($seatCount < 1) {
             throw new InvalidArgumentException('Must book at least 1 seat.');
         }
 
-        $idempotencyKey = $data['idempotency_key'] ?? Str::uuid()->toString();
-
         return DB::transaction(function () use ($trip, $traveler, $data, $seatCount, $idempotencyKey) {
+            // Idempotency check FIRST: return existing booking if duplicate request
+            // This must come before seat/status checks so duplicate requests are idempotent
+            $existing = Booking::where('idempotency_key', $idempotencyKey)->first();
+            if ($existing) {
+                return $existing;
+            }
+
             // Lock the trip row to prevent race conditions on seat count
             $lockedTrip = Trip::lockForUpdate()->findOrFail($trip->id);
 
-            if ($lockedTrip->status !== Trip::STATUS_PUBLISHED) {
+            if (!in_array($lockedTrip->status, [Trip::STATUS_PUBLISHED, Trip::STATUS_FULL])) {
                 throw new InvalidArgumentException('Trip is no longer available for booking.');
             }
 
@@ -54,12 +67,6 @@ class BookingService
                 throw new InvalidArgumentException(
                     "Not enough seats available. Requested: {$seatCount}, Available: {$lockedTrip->available_seats}"
                 );
-            }
-
-            // Idempotency check: prevent duplicate bookings
-            $existing = Booking::where('idempotency_key', $idempotencyKey)->first();
-            if ($existing) {
-                return $existing;
             }
 
             // Determine status based on booking mode
@@ -84,6 +91,9 @@ class BookingService
             // Decrement available seats for instant bookings
             if ($isInstant) {
                 $lockedTrip->decrement('available_seats', $seatCount);
+
+                // Auto-mark trip as full if no seats remain
+                $this->tripService->checkAndMarkFull($lockedTrip);
             }
 
             // Record status history
@@ -130,6 +140,9 @@ class BookingService
 
             // Decrement available seats
             $lockedTrip->decrement('available_seats', $freshBooking->seat_count);
+
+            // Auto-mark trip as full if no seats remain
+            $this->tripService->checkAndMarkFull($lockedTrip);
 
             $freshBooking->update([
                 'status' => Booking::STATUS_ACCEPTED,
@@ -181,8 +194,13 @@ class BookingService
     /**
      * Cancel a booking (by traveler or host).
      *
+     * Applies configurable cancellation rules:
+     *   - Traveler before acceptance: full refund
+     *   - Traveler after confirmation: partial refund (configurable)
+     *   - Host cancellation: full refund + optional host penalty
+     *   - No-show: platform retains fees
+     *
      * Restores available seats if the booking was confirmed/accepted.
-     * Only requested or confirmed bookings can be cancelled.
      */
     public function cancelBooking(Booking $booking, User $user): Booking
     {
@@ -206,6 +224,10 @@ class BookingService
                 throw new InvalidArgumentException('You are not authorized to cancel this booking.');
             }
 
+            // Determine cancellation outcome using configurable policy
+            $outcome = $this->cancellationPolicy->determineOutcome($freshBooking, $user);
+            $refundAmount = $this->cancellationPolicy->calculateRefundAmount($freshBooking, $outcome);
+
             $wasSeatReserved = in_array($freshBooking->status, [
                 Booking::STATUS_ACCEPTED,
                 Booking::STATUS_CONFIRMED,
@@ -214,17 +236,54 @@ class BookingService
             // Restore seats if they were previously decremented
             if ($wasSeatReserved) {
                 $lockedTrip->increment('available_seats', $freshBooking->seat_count);
+
+                // Restore trip from 'full' to 'published' if seats available again
+                $this->tripService->checkAndRestoreFromFull($lockedTrip);
+            }
+
+            // Apply refund if applicable (credit back to traveler's wallet)
+            if ($refundAmount > 0) {
+                $travelerWallet = Wallet::lockForUpdate()
+                    ->where('user_id', $freshBooking->traveler_id)
+                    ->first();
+                if ($travelerWallet) {
+                    $balanceBefore = $travelerWallet->balance;
+                    $travelerWallet->increment('balance', $refundAmount);
+
+                    // Record the refund transaction
+                    \App\Models\WalletTransaction::create([
+                        'wallet_id' => $travelerWallet->id,
+                        'user_id' => $freshBooking->traveler_id,
+                        'direction' => 'credit',
+                        'amount' => $refundAmount,
+                        'balance_before' => $balanceBefore,
+                        'balance_after' => $balanceBefore + $refundAmount,
+                        'type' => 'refund',
+                        'status' => 'completed',
+                        'reference_type' => Booking::class,
+                        'reference_id' => $freshBooking->id,
+                        'metadata' => [
+                            'reason' => $outcome['description'],
+                            'refund_percentage' => $outcome['refund_percentage'],
+                        ],
+                    ]);
+                }
             }
 
             $freshBooking->update([
                 'status' => Booking::STATUS_CANCELLED,
                 'cancelled_at' => now(),
+                'fee_snapshot' => [
+                    'cancellation_outcome' => $outcome,
+                    'refund_amount' => $refundAmount,
+                ],
             ]);
 
             $this->recordBookingStatusHistory(
                 $freshBooking,
                 Booking::STATUS_CANCELLED,
-                $user->id
+                $user->id,
+                ['cancellation_outcome' => $outcome]
             );
 
             event(new BookingCancelled($freshBooking, $user));
@@ -271,11 +330,12 @@ class BookingService
     /**
      * Record a status change in the booking's history.
      */
-    private function recordBookingStatusHistory(Booking $booking, string $status, int $changedBy): void
+    private function recordBookingStatusHistory(Booking $booking, string $status, int $changedBy, array $metadata = []): void
     {
         $booking->statusHistory()->create([
             'status' => $status,
             'changed_by' => $changedBy,
+            'metadata' => $metadata ?: null,
         ]);
     }
 }

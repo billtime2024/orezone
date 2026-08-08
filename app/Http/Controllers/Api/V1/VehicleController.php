@@ -19,6 +19,8 @@ class VehicleController extends Controller
      */
     public function index(Request $request): AnonymousResourceCollection
     {
+        $this->authorize('viewAny', Vehicle::class);
+
         $vehicles = $request->user()
             ->vehicles()
             ->with('category')
@@ -32,8 +34,9 @@ class VehicleController extends Controller
      */
     public function store(StoreVehicleRequest $request): JsonResponse
     {
-        $vehicle = $request->user()->vehicles()->create($request->validated());
+        $this->authorize('create', Vehicle::class);
 
+        $vehicle = $request->user()->vehicles()->create($request->validated());
         $vehicle->load('category');
 
         return response()->json(new VehicleResource($vehicle), 201);
@@ -42,12 +45,9 @@ class VehicleController extends Controller
     /**
      * Display the specified vehicle.
      */
-    public function show(Request $request, Vehicle $vehicle): JsonResponse
+    public function show(Vehicle $vehicle): JsonResponse
     {
-        // Verify vehicle belongs to user
-        if ($vehicle->user_id !== $request->user()->id) {
-            abort(403, 'This vehicle does not belong to you.');
-        }
+        $this->authorize('view', $vehicle);
 
         $vehicle->load(['category', 'documents']);
 
@@ -59,10 +59,7 @@ class VehicleController extends Controller
      */
     public function update(UpdateVehicleRequest $request, Vehicle $vehicle): JsonResponse
     {
-        // Verify vehicle belongs to user
-        if ($vehicle->user_id !== $request->user()->id) {
-            abort(403, 'This vehicle does not belong to you.');
-        }
+        $this->authorize('update', $vehicle);
 
         $vehicle->update($request->validated());
         $vehicle->load('category');
@@ -73,14 +70,10 @@ class VehicleController extends Controller
     /**
      * Remove the specified vehicle.
      */
-    public function destroy(Request $request, Vehicle $vehicle): JsonResponse
+    public function destroy(Vehicle $vehicle): JsonResponse
     {
-        // Verify vehicle belongs to user
-        if ($vehicle->user_id !== $request->user()->id) {
-            abort(403, 'This vehicle does not belong to you.');
-        }
+        $this->authorize('delete', $vehicle);
 
-        // Delete vehicle and its documents (cascade on delete handles this)
         $vehicle->delete();
 
         return response()->json([
@@ -91,12 +84,9 @@ class VehicleController extends Controller
     /**
      * Submit a vehicle for verification.
      */
-    public function submitVerification(Request $request, Vehicle $vehicle): JsonResponse
+    public function submitVerification(Vehicle $vehicle): JsonResponse
     {
-        // Verify vehicle belongs to user
-        if ($vehicle->user_id !== $request->user()->id) {
-            abort(403, 'This vehicle does not belong to you.');
-        }
+        $this->authorize('submitVerification', $vehicle);
 
         // Check vehicle has required documents (rc_book, insurance)
         $requiredDocuments = ['rc_book', 'insurance'];
@@ -114,7 +104,7 @@ class VehicleController extends Controller
         // Get or create verification request for this vehicle
         $verificationRequest = VerificationRequest::firstOrCreate(
             [
-                'user_id' => $request->user()->id,
+                'user_id' => $vehicle->user_id,
                 'type' => 'vehicle',
                 'vehicle_id' => $vehicle->id,
             ],

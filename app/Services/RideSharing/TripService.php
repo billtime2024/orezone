@@ -180,9 +180,9 @@ class TripService
         return DB::transaction(function () use ($trip, $host) {
             $lockedTrip = Trip::lockForUpdate()->findOrFail($trip->id);
 
-            if ($lockedTrip->status !== Trip::STATUS_PUBLISHED) {
+            if (!in_array($lockedTrip->status, [Trip::STATUS_PUBLISHED, Trip::STATUS_FULL])) {
                 throw new InvalidArgumentException(
-                    "Trip must be published to start. Current status: {$lockedTrip->status}"
+                    "Trip must be published or full to start. Current status: {$lockedTrip->status}"
                 );
             }
 
@@ -283,14 +283,73 @@ class TripService
             $query->whereDate('departure_at', $filters['departure_date']);
         }
 
+        // Departure time range filter
+        if (!empty($filters['departure_from'])) {
+            $query->where('departure_at', '>=', $filters['departure_from']);
+        }
+        if (!empty($filters['departure_to'])) {
+            $query->where('departure_at', '<=', $filters['departure_to']);
+        }
+
         // Minimum seats available
         if (!empty($filters['min_seats'])) {
             $query->where('available_seats', '>=', $filters['min_seats']);
         }
 
+        // Maximum seats (filter trips by total capacity)
+        if (!empty($filters['max_seats'])) {
+            $query->where('total_seats', '<=', $filters['max_seats']);
+        }
+
         // Booking mode filter
         if (!empty($filters['booking_mode'])) {
             $query->where('booking_mode', $filters['booking_mode']);
+        }
+
+        // Radius-based search using lat/lng
+        if (!empty($filters['origin_lat']) && !empty($filters['origin_lng'])) {
+            $radiusKm = $filters['radius_km'] ?? 50; // Default 50km
+            $radiusMeters = $radiusKm * 1000;
+
+            // Haversine formula for radius search
+            $query->whereRaw("
+                (6371 * acos(
+                    cos(radians(?)) * cos(radians(origin_lat))
+                    * cos(radians(origin_lng) - radians(?))
+                    + sin(radians(?)) * sin(radians(origin_lat))
+                )) <= ?
+            ", [
+                $filters['origin_lat'],
+                $filters['origin_lng'],
+                $filters['origin_lat'],
+                $radiusMeters,
+            ]);
+        }
+
+        // Destination radius search
+        if (!empty($filters['dest_lat']) && !empty($filters['dest_lng'])) {
+            $radiusKm = $filters['dest_radius_km'] ?? 50;
+            $radiusMeters = $radiusKm * 1000;
+
+            $query->whereRaw("
+                (6371 * acos(
+                    cos(radians(?)) * cos(radians(destination_lat))
+                    * cos(radians(destination_lng) - radians(?))
+                    + sin(radians(?)) * sin(radians(destination_lat))
+                )) <= ?
+            ", [
+                $filters['dest_lat'],
+                $filters['dest_lng'],
+                $filters['dest_lat'],
+                $radiusMeters,
+            ]);
+        }
+
+        // Vehicle category filter
+        if (!empty($filters['vehicle_category'])) {
+            $query->whereHas('vehicle', function ($q) use ($filters) {
+                $q->where('vehicle_category_id', $filters['vehicle_category']);
+            });
         }
 
         // Sort
@@ -304,6 +363,118 @@ class TripService
         }
 
         return $query->paginate($filters['per_page'] ?? 20);
+    }
+
+    /**
+     * Update a draft trip.
+     *
+     * Validates ownership, draft status, and recalculates available_seats
+     * when total_seats changes.
+     */
+    public function updateDraft(Trip $trip, User $host, array $data): Trip
+    {
+        if (!$trip->isHost($host)) {
+            throw new InvalidArgumentException('You are not the host of this trip.');
+        }
+
+        if ($trip->status !== Trip::STATUS_DRAFT) {
+            throw new InvalidArgumentException('Only draft trips can be updated.');
+        }
+
+        // Validate vehicle ownership if vehicle_id is being changed
+        if (isset($data['vehicle_id'])) {
+            $vehicle = Vehicle::where('id', $data['vehicle_id'])
+                ->where('user_id', $host->id)
+                ->first();
+
+            if (!$vehicle) {
+                throw new InvalidArgumentException('Vehicle not found or does not belong to you.');
+            }
+        }
+
+        // Recalculate available_seats when total_seats changes
+        if (isset($data['total_seats']) && $data['total_seats'] !== $trip->total_seats) {
+            $newTotal = $data['total_seats'];
+            $bookedSeats = $trip->bookings()
+                ->where('status', Booking::STATUS_CONFIRMED)
+                ->sum('seat_count');
+
+            if ($bookedSeats > $newTotal) {
+                throw new InvalidArgumentException(
+                    "Cannot reduce total_seats below the number of already confirmed seats ({$bookedSeats})."
+                );
+            }
+
+            $data['available_seats'] = $newTotal - $bookedSeats;
+        }
+
+        $trip->update($data);
+
+        return $trip;
+    }
+
+    /**
+     * Delete a draft trip.
+     *
+     * Only draft trips can be deleted.
+     */
+    public function deleteDraft(Trip $trip, User $host): void
+    {
+        if (!$trip->isHost($host)) {
+            throw new InvalidArgumentException('You are not the host of this trip.');
+        }
+
+        if ($trip->status !== Trip::STATUS_DRAFT) {
+            throw new InvalidArgumentException('Only draft trips can be deleted.');
+        }
+
+        $trip->delete();
+    }
+
+    /**
+     * Check if a trip should be marked as 'full' when available_seats reaches 0.
+     *
+     * Called after a booking is confirmed and seats are decremented.
+     * Only applies to published trips.
+     */
+    public function checkAndMarkFull(Trip $trip): Trip
+    {
+        $lockedTrip = Trip::lockForUpdate()->findOrFail($trip->id);
+
+        if ($lockedTrip->status === Trip::STATUS_PUBLISHED && $lockedTrip->available_seats <= 0) {
+            $lockedTrip->update(['status' => Trip::STATUS_FULL]);
+
+            $this->recordTripStatusHistory(
+                $lockedTrip,
+                Trip::STATUS_FULL,
+                $lockedTrip->host_id
+            );
+        }
+
+        return $lockedTrip;
+    }
+
+    /**
+     * Check if a trip should be restored from 'full' to 'published' when seats increase.
+     *
+     * Called after a booking is cancelled and seats are restored.
+     * Only applies to trips that were marked as 'full'.
+     */
+    public function checkAndRestoreFromFull(Trip $trip): Trip
+    {
+        $lockedTrip = Trip::lockForUpdate()->findOrFail($trip->id);
+
+        if ($lockedTrip->status === Trip::STATUS_FULL && $lockedTrip->available_seats > 0) {
+            $lockedTrip->update(['status' => Trip::STATUS_PUBLISHED]);
+
+            $this->recordTripStatusHistory(
+                $lockedTrip,
+                Trip::STATUS_PUBLISHED,
+                $lockedTrip->host_id
+            );
+        }
+
+        return $lockedTrip;
     }
 
     /**
