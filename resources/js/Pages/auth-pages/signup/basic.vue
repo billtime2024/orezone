@@ -106,7 +106,7 @@ export default {
                                     <img src="@assets/images/logo-light.png" alt="" height="20">
                                 </Link>
                             </div>
-                            <p class="mt-3 fs-15 fw-medium">Premium Admin & Dashboard Template</p>
+                            <p class="mt-3 fs-15 fw-medium">Community Sharing Platform</p>
                         </div>
                     </BCol>
                 </BRow>
@@ -118,7 +118,7 @@ export default {
                             <BCardBody class="p-4">
                                 <div class="text-center mt-2">
                                     <h5 class="text-primary">Create New Account</h5>
-                                    <p class="text-muted">Get your free velzon account now</p>
+                                    <p class="text-muted">Create your orezone account</p>
                                 </div>
                                 <div class="p-2 mt-4">
                                     <form class="needs-validation" novalidate>
@@ -204,7 +204,7 @@ export default {
                 <BRow>
                     <BCol lg="12">
                         <div class="text-center">
-                            <p class="mb-0 text-muted">&copy; {{ new Date().getFullYear() }} Velzon. Crafted with <i class="mdi mdi-heart text-danger"></i> by Themesbrand</p>
+                            <p class="mb-0 text-muted">&copy; {{ new Date().getFullYear() }} orezone. Community Sharing Platform.</p>
                         </div>
                     </BCol>
                 </BRow>

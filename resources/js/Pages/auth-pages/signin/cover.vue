@@ -91,7 +91,7 @@ export default {
                                     <div class="p-lg-5 p-4">
                                         <div>
                                             <h5 class="text-primary">Welcome Back !</h5>
-                                            <p class="text-muted">Sign in to continue to Velzon.</p>
+                                            <p class="text-muted">Sign in to continue to orezone.</p>
                                         </div>
 
                                         <div class="mt-4">
@@ -173,8 +173,7 @@ export default {
                 <BRow>
                     <BCol lg="12">
                         <div class="text-center">
-                            <p class="mb-0">&copy; {{ new Date().getFullYear() }} Velzon. Crafted with <i
-                                    class="mdi mdi-heart text-danger"></i> by Themesbrand</p>
+                            <p class="mb-0">&copy; {{ new Date().getFullYear() }} &copy; {{ new Date().getFullYear() }} orezone. Community Sharing Platform.</p>
                         </div>
                     </BCol>
                 </BRow>

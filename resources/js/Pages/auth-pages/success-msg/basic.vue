@@ -31,7 +31,7 @@ export default {
                 </Link>
               </div>
               <p class="mt-3 fs-15 fw-medium">
-                Premium Admin & Dashboard Template
+                Community Sharing Platform
               </p>
             </div>
           </BCol>
@@ -69,7 +69,7 @@ export default {
           <BCol lg="12">
             <div class="text-center">
               <p class="mb-0 text-muted">
-                &copy; {{ new Date().getFullYear() }} Velzon. Crafted with
+                &copy; {{ new Date().getFullYear() }} orezone. Crafted with
                 <i class="mdi mdi-heart text-danger"></i> by Themesbrand
               </p>
             </div>

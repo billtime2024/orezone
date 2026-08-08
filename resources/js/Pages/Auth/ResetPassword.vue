@@ -45,10 +45,10 @@ const submit = () => {
                         <div class="text-center mt-sm-5 mb-4 text-white">
                             <div>
                                 <Link href="/" class="d-inline-block auth-logo">
-                                <img src="@assets/images/logo-light.png" alt="" height="20">
+                                <img src="@assets/images/logo-light.png" alt="orezone" height="20">
                                 </Link>
                             </div>
-                            <p class="mt-3 fs-15 fw-medium">Premium Admin & Dashboard Template</p>
+                            <p class="mt-3 fs-15 fw-medium">Community Sharing Platform</p>
                         </div>
                     </BCol>
                 </BRow>
@@ -116,7 +116,7 @@ const submit = () => {
                 <BRow>
                     <BCol lg="12">
                         <div class="text-center">
-                            <p class="mb-0 text-muted">&copy; {{ new Date().getFullYear() }} Velzon. Crafted with <i class="mdi mdi-heart text-danger"></i> by Themesbrand</p>
+                            <p class="mb-0 text-muted">&copy; {{ new Date().getFullYear() }} orezone. Community Sharing Platform.</p>
                         </div>
                     </BCol>
                 </BRow>

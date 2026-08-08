@@ -88,7 +88,7 @@ export default {
                                 <BCol lg="6">
                                     <div class="p-lg-5 p-4">
                                         <h5 class="text-primary">Forgot Password?</h5>
-                                        <p class="text-muted">Reset password with velzon</p>
+                                        <p class="text-muted">Reset your orezone password</p>
 
                                         <div class="mt-2 text-center">
                                             <lottie class="avatar-xl" colors="primary:#0ab39c,secondary:#405189" :options="defaultOptions" :height="120" :width="120" />
@@ -131,7 +131,7 @@ export default {
                 <BRow>
                     <BCol lg="12">
                         <div class="text-center">
-                            <p class="mb-0">&copy; {{ new Date().getFullYear() }} Velzon. Crafted with <i class="mdi mdi-heart text-danger"></i> by Themesbrand</p>
+                            <p class="mb-0">&copy; {{ new Date().getFullYear() }} orezone. Community Sharing Platform.</p>
                         </div>
                     </BCol>
                 </BRow>
