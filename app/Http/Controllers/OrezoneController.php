@@ -12,6 +12,7 @@ use App\Models\Vehicle;
 use App\Models\VerificationRequest;
 use App\Models\Wallet;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 
 class OrezoneController extends Controller
@@ -217,5 +218,25 @@ class OrezoneController extends Controller
         $alerts = $query->paginate(20)->withQueryString();
 
         return Inertia::render('admin/sos/index', ['alerts' => $alerts]);
+    }
+
+    /**
+     * Admin: Profile page
+     */
+    public function admin_profile()
+    {
+        return Inertia::render('admin/profile', [
+            'user' => Auth::user(),
+        ]);
+    }
+
+    /**
+     * Admin: Change password page
+     */
+    public function admin_change_password()
+    {
+        return Inertia::render('admin/change-password', [
+            'user' => Auth::user(),
+        ]);
     }
 }

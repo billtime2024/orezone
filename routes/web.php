@@ -37,4 +37,6 @@ Route::middleware(['auth', 'can:access-admin'])->controller(OrezoneController::c
     Route::get('/admin/reviews', 'admin_reviews')->name('admin.reviews');
     Route::get('/admin/reports', 'admin_reports')->name('admin.reports');
     Route::get('/admin/sos', 'admin_sos')->name('admin.sos');
+    Route::get('/admin/profile', 'admin_profile')->name('admin.profile');
+    Route::get('/admin/change-password', 'admin_change_password')->name('admin.change-password');
 });
