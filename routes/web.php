@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\OrezoneController;
 use App\Http\Controllers\PortalController;
+use App\Http\Controllers\PortalFoodController;
+use App\Http\Controllers\PortalFoodProviderController;
 use App\Http\Controllers\PortalRentalController;
 use Illuminate\Support\Facades\Route;
 
@@ -68,6 +70,35 @@ Route::middleware(['auth', 'can:access-admin'])->group(function () {
     Route::get('/admin/wallet-transactions', [App\Http\Controllers\AdminWalletTransactionController::class, 'index'])->name('admin.wallet-transactions');
 });
 
+// Admin Food Services Routes
+Route::middleware(['auth', 'can:access-admin'])->group(function () {
+    // Food Providers
+    Route::get('/admin/food-providers', [App\Http\Controllers\AdminFoodProviderController::class, 'index'])->name('admin.food-providers');
+    Route::get('/admin/food-providers/create', [App\Http\Controllers\AdminFoodProviderController::class, 'create'])->name('admin.food-providers.create');
+    Route::post('/admin/food-providers', [App\Http\Controllers\AdminFoodProviderController::class, 'store'])->name('admin.food-providers.store');
+    Route::get('/admin/food-providers/{provider}', [App\Http\Controllers\AdminFoodProviderController::class, 'show'])->name('admin.food-providers.show');
+    Route::get('/admin/food-providers/{provider}/edit', [App\Http\Controllers\AdminFoodProviderController::class, 'edit'])->name('admin.food-providers.edit');
+    Route::put('/admin/food-providers/{provider}', [App\Http\Controllers\AdminFoodProviderController::class, 'update'])->name('admin.food-providers.update');
+    Route::delete('/admin/food-providers/{provider}', [App\Http\Controllers\AdminFoodProviderController::class, 'destroy'])->name('admin.food-providers.destroy');
+    Route::patch('/admin/food-providers/{provider}/verify', [App\Http\Controllers\AdminFoodProviderController::class, 'verify'])->name('admin.food-providers.verify');
+    Route::patch('/admin/food-providers/{provider}/featured', [App\Http\Controllers\AdminFoodProviderController::class, 'toggleFeatured'])->name('admin.food-providers.featured');
+    Route::patch('/admin/food-providers/{provider}/active', [App\Http\Controllers\AdminFoodProviderController::class, 'toggleActive'])->name('admin.food-providers.active');
+    Route::post('/admin/food-providers/{provider}/login-as', [App\Http\Controllers\AdminFoodProviderController::class, 'loginAs'])->name('admin.food-providers.login-as');
+
+    // Food Orders
+    Route::get('/admin/food-orders', [App\Http\Controllers\AdminFoodOrderController::class, 'index'])->name('admin.food-orders');
+    Route::get('/admin/food-orders/{order}', [App\Http\Controllers\AdminFoodOrderController::class, 'show'])->name('admin.food-orders.show');
+    Route::post('/admin/food-orders/{order}/cancel', [App\Http\Controllers\AdminFoodOrderController::class, 'cancel'])->name('admin.food-orders.cancel');
+
+    // Food Catering
+    Route::get('/admin/food-catering', [App\Http\Controllers\AdminFoodCateringController::class, 'index'])->name('admin.food-catering');
+    Route::get('/admin/food-catering/{request}', [App\Http\Controllers\AdminFoodCateringController::class, 'show'])->name('admin.food-catering.show');
+
+    // Food Analytics
+    Route::get('/admin/food-analytics', [App\Http\Controllers\AdminFoodAnalyticsController::class, 'index'])->name('admin.food-analytics');
+    Route::get('/admin/food-commissions', [App\Http\Controllers\AdminFoodAnalyticsController::class, 'commissions'])->name('admin.food-commissions');
+});
+
 // Portal routes — authenticated users only
 Route::middleware(['auth'])->controller(PortalController::class)->group(function () {
     // Dashboard
@@ -132,4 +163,49 @@ Route::middleware(['auth'])->controller(PortalRentalController::class)->group(fu
     Route::post('/portal/rentals-bookings/{booking}/reject', 'rejectBooking')->name('portal.rentals-bookings.reject');
     Route::post('/portal/rentals-bookings/{booking}/cancel', 'cancelBooking')->name('portal.rentals-bookings.cancel');
     Route::post('/portal/rentals-bookings/{booking}/host-cancel', 'hostCancelBooking')->name('portal.rentals-bookings.host-cancel');
+});
+
+// Portal Food Services Routes (Customer-facing)
+Route::middleware(['auth'])->controller(PortalFoodController::class)->prefix('portal/food')->name('portal.food.')->group(function () {
+    // Browse
+    Route::get('/', 'index')->name('index');
+    Route::get('/search', 'search')->name('search');
+    Route::get('/provider/{provider}', 'provider')->name('provider');
+    Route::get('/item/{item}', 'item')->name('item');
+
+    // Cart
+    Route::get('/cart', 'cart')->name('cart');
+    Route::post('/cart/add', 'addToCart')->name('cart.add');
+    Route::put('/cart/{cartItem}', 'updateCartItem')->name('cart.update');
+    Route::delete('/cart/{cartItem}', 'removeCartItem')->name('cart.remove');
+
+    // Orders
+    Route::get('/orders', 'orders')->name('orders');
+    Route::get('/orders/{order}', 'order')->name('order');
+
+    // Catering
+    Route::get('/catering', 'catering')->name('catering');
+    Route::get('/catering/create', 'createCatering')->name('catering.create');
+    Route::post('/catering', 'storeCatering')->name('catering.store');
+});
+
+// Portal Food Provider Routes
+Route::middleware(['auth'])->controller(PortalFoodProviderController::class)->prefix('portal/food-provider')->name('portal.food-provider.')->group(function () {
+    // Dashboard
+    Route::get('/', 'index')->name('index');
+
+    // Menu Management
+    Route::get('/menu', 'menu')->name('menu');
+    Route::get('/menu/create', 'createItem')->name('menu.create');
+    Route::get('/menu/{item}/edit', 'editItem')->name('menu.edit');
+
+    // Orders
+    Route::get('/orders', 'orders')->name('orders');
+    Route::get('/orders/{order}', 'order')->name('order');
+
+    // Catering
+    Route::get('/catering', 'catering')->name('catering');
+
+    // Profile
+    Route::get('/profile', 'profile')->name('profile');
 });

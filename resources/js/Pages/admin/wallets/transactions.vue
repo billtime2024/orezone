@@ -187,7 +187,7 @@
 
 <script setup>
 import { ref, computed } from 'vue';
-import { router } from '@inertiajs/vue2';
+import { router } from '@inertiajs/vue3';
 
 const props = defineProps({
   transactions: Object,

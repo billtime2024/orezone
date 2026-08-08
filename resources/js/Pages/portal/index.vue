@@ -78,6 +78,19 @@ export default {
                 </Link>
             </div>
 
+            <!-- Food Services -->
+            <div class="col-sm-6 col-lg-4">
+                <Link href="/portal/food" class="text-decoration-none">
+                    <div class="card border-0 shadow-sm h-100 text-center p-4 hover-shadow">
+                        <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 72px; height: 72px; background-color: rgba(46,125,91,0.1);">
+                            <span class="display-5">🥗</span>
+                        </div>
+                        <h5 class="fw-bold text-dark mb-2">Food Services</h5>
+                        <p class="text-muted small mb-0">Order delicious pure veg food from verified providers</p>
+                    </div>
+                </Link>
+            </div>
+
             <!-- Vehicles -->
             <div class="col-sm-6 col-lg-4">
                 <Link href="/portal/vehicles" class="text-decoration-none">

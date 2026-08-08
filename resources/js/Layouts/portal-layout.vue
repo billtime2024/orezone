@@ -7,7 +7,7 @@ export default {
         return {
             sidebarOpen: true,
             userDropdownOpen: false,
-            openMenus: ['ride-module', 'rental-module'],
+            openMenus: ['ride-module', 'rental-module', 'food-module'],
             navItems: [
                 { label: 'Dashboard', href: '/portal', icon: 'ri-dashboard-line' },
                 {
@@ -29,6 +29,29 @@ export default {
                         { label: 'My Listings', href: '/portal/rentals/my' },
                         { label: 'My Bookings', href: '/portal/rentals-bookings' },
                         { label: 'Owner Bookings', href: '/portal/owner/rentals-bookings' },
+                    ],
+                },
+                {
+                    label: 'Food Services',
+                    href: '/portal/food',
+                    icon: 'ri-restaurant-2-line',
+                    children: [
+                        { label: 'Browse Food', href: '/portal/food' },
+                        { label: 'My Orders', href: '/portal/food/orders' },
+                        { label: 'Cart', href: '/portal/food/cart' },
+                        { label: 'Catering', href: '/portal/food/catering' },
+                    ],
+                },
+                {
+                    label: 'Provider Panel',
+                    href: '/portal/food-provider',
+                    icon: 'ri-restaurant-2-line',
+                    children: [
+                        { label: 'Dashboard', href: '/portal/food-provider' },
+                        { label: 'My Menu', href: '/portal/food-provider/menu' },
+                        { label: 'Orders', href: '/portal/food-provider/orders' },
+                        { label: 'Catering', href: '/portal/food-provider/catering' },
+                        { label: 'Profile', href: '/portal/food-provider/profile' },
                     ],
                 },
                 { label: 'Vehicles', href: '/portal/vehicles', icon: 'ri-car-line' },

@@ -23,6 +23,18 @@ import '../screens/rentals/rental_detail_screen.dart';
 import '../screens/rentals/my_rental_bookings_screen.dart';
 import '../screens/rentals/owner_rental_bookings_screen.dart';
 import '../screens/rentals/my_listings_screen.dart';
+import '../screens/food/food_home_screen.dart';
+import '../screens/food/food_search_screen.dart';
+import '../screens/food/food_provider_detail_screen.dart';
+import '../screens/food/food_item_detail_screen.dart';
+import '../screens/food/food_cart_screen.dart';
+import '../screens/food/food_order_history_screen.dart';
+import '../screens/food/food_order_tracking_screen.dart';
+import '../screens/food/food_catering_request_screen.dart';
+import '../screens/food/provider/provider_dashboard_screen.dart';
+import '../screens/food/provider/provider_menu_screen.dart';
+import '../screens/food/provider/provider_order_queue_screen.dart';
+import '../screens/food/provider/provider_registration_screen.dart';
 
 class AppRouter {
   static final GoRouter router = GoRouter(
@@ -189,6 +201,77 @@ class AppRouter {
           final id = int.parse(state.pathParameters['id'] ?? '0');
           return _EditListingPlaceholder(listingId: id);
         },
+      ),
+
+      // Food Services
+      GoRoute(
+        path: '/food',
+        name: 'food',
+        builder: (context, state) => const FoodHomeScreen(),
+      ),
+      GoRoute(
+        path: '/food/search',
+        name: 'foodSearch',
+        builder: (context, state) => const FoodSearchScreen(),
+      ),
+      GoRoute(
+        path: '/food/provider/:slug',
+        name: 'foodProviderDetail',
+        builder: (context, state) {
+          final slug = state.pathParameters['slug'] ?? '';
+          return FoodProviderDetailScreen(providerSlug: slug);
+        },
+      ),
+      GoRoute(
+        path: '/food/item/:slug',
+        name: 'foodItemDetail',
+        builder: (context, state) {
+          final slug = state.pathParameters['slug'] ?? '';
+          return FoodItemDetailScreen(itemSlug: slug);
+        },
+      ),
+      GoRoute(
+        path: '/food/cart',
+        name: 'foodCart',
+        builder: (context, state) => const FoodCartScreen(),
+      ),
+      GoRoute(
+        path: '/food/orders',
+        name: 'foodOrders',
+        builder: (context, state) => const FoodOrderHistoryScreen(),
+      ),
+      GoRoute(
+        path: '/food/orders/:id',
+        name: 'foodOrderTracking',
+        builder: (context, state) {
+          final id = int.parse(state.pathParameters['id'] ?? '0');
+          return FoodOrderTrackingScreen(orderId: id);
+        },
+      ),
+      GoRoute(
+        path: '/food/catering',
+        name: 'foodCatering',
+        builder: (context, state) => const FoodCateringRequestScreen(),
+      ),
+      GoRoute(
+        path: '/food/provider/registration',
+        name: 'providerRegistration',
+        builder: (context, state) => const ProviderRegistrationScreen(),
+      ),
+      GoRoute(
+        path: '/food/provider/dashboard',
+        name: 'providerDashboard',
+        builder: (context, state) => const ProviderDashboardScreen(),
+      ),
+      GoRoute(
+        path: '/food/provider/menu',
+        name: 'providerMenu',
+        builder: (context, state) => const ProviderMenuScreen(),
+      ),
+      GoRoute(
+        path: '/food/provider/orders',
+        name: 'providerOrders',
+        builder: (context, state) => const ProviderOrderQueueScreen(),
       ),
     ],
   );

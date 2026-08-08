@@ -24,6 +24,12 @@ export default {
                 { label: 'Total Reviews', value: this.stats.total_reviews, icon: 'ri-star-line', color: 'warning', href: '/admin/reviews' },
                 { label: 'Pending Reports', value: this.stats.pending_reports, icon: 'ri-flag-line', color: 'danger', href: '/admin/reports' },
                 { label: 'Active SOS Alerts', value: this.stats.active_sos, icon: 'ri-alarm-warning-line', color: 'danger', href: '/admin/sos' },
+                { label: 'Food Providers', value: this.stats.total_food_providers, icon: 'ri-restaurant-line', color: 'success', href: '/admin/food-providers' },
+                { label: 'Pending Food Verification', value: this.stats.pending_food_verifications, icon: 'ri-file-list-3-line', color: 'warning', href: '/admin/food-providers' },
+                { label: 'Food Orders', value: this.stats.total_food_orders, icon: 'ri-shopping-bag-line', color: 'info', href: '/admin/food-orders' },
+                { label: 'Active Food Orders', value: this.stats.active_food_orders, icon: 'ri-fire-line', color: 'danger', href: '/admin/food-orders' },
+                { label: 'Food Revenue', value: '₹' + Number(this.stats.total_food_revenue).toLocaleString('en-IN'), icon: 'ri-money-rupee-circle-line', color: 'success', href: '/admin/food-analytics' },
+                { label: 'Catering Requests', value: this.stats.total_catering_requests, icon: 'ri-goblet-line', color: 'primary', href: '/admin/food-catering' },
             ],
         };
     },

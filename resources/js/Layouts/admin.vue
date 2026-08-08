@@ -32,6 +32,18 @@ export default {
                     ],
                 },
                 {
+                    label: 'Food Services',
+                    href: '/admin/food-providers',
+                    icon: 'ri-restaurant-line',
+                    children: [
+                        { label: 'Providers', href: '/admin/food-providers' },
+                        { label: 'Orders', href: '/admin/food-orders' },
+                        { label: 'Catering', href: '/admin/food-catering' },
+                        { label: 'Analytics', href: '/admin/food-analytics' },
+                        { label: 'Commissions', href: '/admin/food-commissions' },
+                    ],
+                },
+                {
                     label: 'Finance',
                     href: '/admin/wallets',
                     icon: 'ri-money-rupee-circle-line',

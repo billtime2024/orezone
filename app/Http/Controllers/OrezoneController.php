@@ -55,6 +55,13 @@ class OrezoneController extends Controller
             'total_reviews' => Review::count(),
             'pending_reports' => Report::where('status', 'pending')->count(),
             'active_sos' => SosAlert::where('status', 'active')->count(),
+            // Food Services stats
+            'total_food_providers' => \App\Models\Food\FoodProvider::count(),
+            'pending_food_verifications' => \App\Models\Food\FoodProvider::where('verification_status', 'pending')->count(),
+            'total_food_orders' => \App\Models\Food\FoodOrder::count(),
+            'active_food_orders' => \App\Models\Food\FoodOrder::whereIn('status', ['placed', 'confirmed', 'preparing', 'ready'])->count(),
+            'total_food_revenue' => (float) \App\Models\Food\FoodOrder::where('payment_status', 'paid')->sum('total_amount'),
+            'total_catering_requests' => \App\Models\Food\CateringRequest::count(),
         ];
 
         return Inertia::render('admin/dashboard', ['stats' => $stats]);

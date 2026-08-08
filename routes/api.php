@@ -124,3 +124,6 @@ Route::prefix('v1')->group(function () {
         Route::post('rentals-bookings/{booking}/review', [RentalReviewController::class, 'store']);
     });
 });
+
+// ── Food Services Routes ─────────────────────────────────────────
+require __DIR__ . '/food.php';
