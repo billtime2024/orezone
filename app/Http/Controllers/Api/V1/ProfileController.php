@@ -19,7 +19,7 @@ class ProfileController extends Controller
         $user = $request->user();
 
         // Auto-create profile if it doesn't exist
-        if (!$user->profile) {
+        if (! $user->profile) {
             $user->profile()->create(['user_id' => $user->id]);
         }
 
@@ -46,7 +46,7 @@ class ProfileController extends Controller
         // Update profile fields (exclude 'name' as it belongs to users table)
         $profileData = collect($request->validated())->except('name')->filter()->toArray();
 
-        if (!empty($profileData)) {
+        if (! empty($profileData)) {
             $profile->update($profileData);
         }
 

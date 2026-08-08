@@ -31,7 +31,7 @@ class AuthController extends Controller
         $user = User::firstOrCreate(
             ['phone' => $phone],
             [
-                'name' => 'User_' . substr($phone, -4),
+                'name' => 'User_'.substr($phone, -4),
                 'phone' => $phone,
                 'status' => 'active',
             ]
@@ -48,7 +48,7 @@ class AuthController extends Controller
 
         return response()->json([
             'message' => 'OTP sent successfully',
-            'phone'   => $phone,
+            'phone' => $phone,
         ]);
     }
 
@@ -62,11 +62,11 @@ class AuthController extends Controller
     {
         $request->validate([
             'phone' => ['required', 'string', 'max:15'],
-            'otp'   => ['required', 'digits:6'],
+            'otp' => ['required', 'digits:6'],
         ]);
 
         $phone = $request->input('phone');
-        $otp   = $request->input('otp');
+        $otp = $request->input('otp');
 
         // Enforce max 5 verify attempts per phone before forcing a new OTP.
         $attemptKey = "otp:attempts:{$phone}";
@@ -83,7 +83,7 @@ class AuthController extends Controller
 
         $hashedOtp = Cache::get("otp:{$phone}");
 
-        if ($hashedOtp === null || !Hash::check((string) $otp, $hashedOtp)) {
+        if ($hashedOtp === null || ! Hash::check((string) $otp, $hashedOtp)) {
             Cache::put($attemptKey, $attempts + 1, now()->addMinutes(5));
 
             throw ValidationException::withMessages([
@@ -115,8 +115,8 @@ class AuthController extends Controller
         }
 
         return response()->json([
-            'user'       => new UserResource($user->fresh()),
-            'token'      => $tokenResult->plainTextToken,
+            'user' => new UserResource($user->fresh()),
+            'token' => $tokenResult->plainTextToken,
             'token_type' => 'Bearer',
         ]);
     }

@@ -14,10 +14,15 @@ class Trip extends Model
 
     // Status constants
     const STATUS_DRAFT = 'draft';
+
     const STATUS_PUBLISHED = 'published';
+
     const STATUS_ACTIVE = 'active';
+
     const STATUS_IN_PROGRESS = 'in_progress';
+
     const STATUS_COMPLETED = 'completed';
+
     const STATUS_CANCELLED = 'cancelled';
 
     const STATUSES = [
@@ -31,6 +36,7 @@ class Trip extends Model
 
     // Booking mode constants
     const BOOKING_MODE_INSTANT = 'instant';
+
     const BOOKING_MODE_REQUEST = 'request';
 
     protected $fillable = [

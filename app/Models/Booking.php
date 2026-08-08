@@ -14,12 +14,19 @@ class Booking extends Model
 
     // Status constants
     const STATUS_REQUESTED = 'requested';
+
     const STATUS_ACCEPTED = 'accepted';
+
     const STATUS_CONFIRMED = 'confirmed';
+
     const STATUS_ACTIVE = 'active';
+
     const STATUS_COMPLETED = 'completed';
+
     const STATUS_CANCELLED = 'cancelled';
+
     const STATUS_REJECTED = 'rejected';
+
     const STATUS_NO_SHOW = 'no_show';
 
     const STATUSES = [
@@ -139,7 +146,7 @@ class Booking extends Model
             $this->update(['status' => $status]);
 
             // Set timestamp for the corresponding status
-            $timestampField = $status . '_at';
+            $timestampField = $status.'_at';
             if (in_array($timestampField, ['requested_at', 'accepted_at', 'confirmed_at', 'cancelled_at', 'completed_at'])) {
                 $this->update([$timestampField => now()]);
             }

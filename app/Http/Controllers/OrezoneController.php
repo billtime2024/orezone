@@ -2,15 +2,15 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
-use App\Models\VerificationRequest;
 use App\Models\Booking;
-use App\Models\Trip;
-use App\Models\Vehicle;
-use App\Models\Wallet;
-use App\Models\Review;
 use App\Models\Report;
+use App\Models\Review;
 use App\Models\SosAlert;
+use App\Models\Trip;
+use App\Models\User;
+use App\Models\Vehicle;
+use App\Models\VerificationRequest;
+use App\Models\Wallet;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -37,8 +37,8 @@ class OrezoneController extends Controller
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere('phone', 'like', "%{$search}%");
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('phone', 'like', "%{$search}%");
             });
         }
 
@@ -102,7 +102,7 @@ class OrezoneController extends Controller
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('origin', 'like', "%{$search}%")
-                  ->orWhere('destination', 'like', "%{$search}%");
+                    ->orWhere('destination', 'like', "%{$search}%");
             });
         }
 

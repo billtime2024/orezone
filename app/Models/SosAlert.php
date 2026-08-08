@@ -11,7 +11,9 @@ class SosAlert extends Model
     use HasFactory;
 
     const STATUS_ACTIVE = 'active';
+
     const STATUS_RESPONDED = 'responded';
+
     const STATUS_RESOLVED = 'resolved';
 
     protected $fillable = [

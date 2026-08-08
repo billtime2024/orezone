@@ -104,7 +104,7 @@ class VehicleController extends Controller
 
         $missingDocuments = array_diff($requiredDocuments, $existingDocumentTypes);
 
-        if (!empty($missingDocuments)) {
+        if (! empty($missingDocuments)) {
             return response()->json([
                 'message' => 'Vehicle must have required documents before submission.',
                 'missing_documents' => array_values($missingDocuments),

@@ -44,11 +44,11 @@ class TripController extends Controller
             ->where('available_seats', '>', 0);
 
         if ($request->filled('origin')) {
-            $query->where('origin_name', 'like', '%' . $request->input('origin') . '%');
+            $query->where('origin_name', 'like', '%'.$request->input('origin').'%');
         }
 
         if ($request->filled('destination')) {
-            $query->where('destination_name', 'like', '%' . $request->input('destination') . '%');
+            $query->where('destination_name', 'like', '%'.$request->input('destination').'%');
         }
 
         if ($request->filled('departure_date')) {
@@ -73,7 +73,7 @@ class TripController extends Controller
             ->where('user_id', $user->id)
             ->first();
 
-        if (!$vehicle) {
+        if (! $vehicle) {
             return response()->json([
                 'message' => 'Vehicle does not belong to you.',
             ], 403);
@@ -116,7 +116,7 @@ class TripController extends Controller
             abort(403, 'This trip does not belong to you.');
         }
 
-        if (!$trip->canBePublished() && $trip->status !== 'draft') {
+        if (! $trip->canBePublished() && $trip->status !== 'draft') {
             return response()->json([
                 'message' => 'Only draft trips can be updated.',
             ], 422);
@@ -130,7 +130,7 @@ class TripController extends Controller
                 ->where('user_id', $request->user()->id)
                 ->first();
 
-            if (!$vehicle) {
+            if (! $vehicle) {
                 return response()->json([
                     'message' => 'Vehicle does not belong to you.',
                 ], 403);
@@ -146,7 +146,7 @@ class TripController extends Controller
 
             if ($bookedSeats > $newTotal) {
                 return response()->json([
-                    'message' => 'Cannot reduce total_seats below the number of already confirmed seats (' . $bookedSeats . ').',
+                    'message' => 'Cannot reduce total_seats below the number of already confirmed seats ('.$bookedSeats.').',
                 ], 422);
             }
 
@@ -168,7 +168,7 @@ class TripController extends Controller
             abort(403, 'This trip does not belong to you.');
         }
 
-        if (!$trip->canBePublished()) {
+        if (! $trip->canBePublished()) {
             return response()->json([
                 'message' => 'Only draft trips can be published.',
             ], 422);
@@ -192,7 +192,7 @@ class TripController extends Controller
             abort(403, 'This trip does not belong to you.');
         }
 
-        if (!$trip->canBeCancelled()) {
+        if (! $trip->canBeCancelled()) {
             return response()->json([
                 'message' => 'This trip cannot be cancelled in its current status.',
             ], 422);
@@ -238,7 +238,7 @@ class TripController extends Controller
             abort(403, 'This trip does not belong to you.');
         }
 
-        if (!$trip->canBeStarted()) {
+        if (! $trip->canBeStarted()) {
             return response()->json([
                 'message' => 'Trip can only be started when it is published and fully booked.',
             ], 422);
@@ -262,7 +262,7 @@ class TripController extends Controller
             abort(403, 'This trip does not belong to you.');
         }
 
-        if (!$trip->canBeCompleted()) {
+        if (! $trip->canBeCompleted()) {
             return response()->json([
                 'message' => 'Only in-progress trips can be completed.',
             ], 422);

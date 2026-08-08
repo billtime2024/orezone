@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Exceptions\InsufficientSeatsException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\StoreBookingRequest;
 use App\Http\Resources\Api\V1\BookingResource;
@@ -52,12 +53,12 @@ class BookingController extends Controller
         // Validate stops belong to this trip (only if provided)
         if ($request->filled('pickup_stop_id') || $request->filled('drop_stop_id')) {
             $validStopIds = $trip->stops()->pluck('id')->toArray();
-            if ($request->filled('pickup_stop_id') && !in_array($request->validated('pickup_stop_id'), $validStopIds)) {
+            if ($request->filled('pickup_stop_id') && ! in_array($request->validated('pickup_stop_id'), $validStopIds)) {
                 return response()->json([
                     'message' => 'Selected pickup stop does not belong to this trip.',
                 ], 422);
             }
-            if ($request->filled('drop_stop_id') && !in_array($request->validated('drop_stop_id'), $validStopIds)) {
+            if ($request->filled('drop_stop_id') && ! in_array($request->validated('drop_stop_id'), $validStopIds)) {
                 return response()->json([
                     'message' => 'Selected drop-off stop does not belong to this trip.',
                 ], 422);
@@ -69,8 +70,8 @@ class BookingController extends Controller
             $trip = Trip::lockForUpdate()->find($trip->id);
 
             if ($trip->available_seats < $seatCount) {
-                throw new \App\Exceptions\InsufficientSeatsException(
-                    'Not enough seats available. Available: ' . $trip->available_seats
+                throw new InsufficientSeatsException(
+                    'Not enough seats available. Available: '.$trip->available_seats
                 );
             }
 
@@ -149,7 +150,7 @@ class BookingController extends Controller
             abort(403, 'You are not the host of this trip.');
         }
 
-        if (!$booking->canBeAccepted()) {
+        if (! $booking->canBeAccepted()) {
             return response()->json([
                 'message' => 'This booking cannot be accepted in its current status.',
             ], 422);
@@ -159,7 +160,7 @@ class BookingController extends Controller
             $trip = Trip::lockForUpdate()->find($trip->id);
 
             if ($trip->available_seats < $booking->seat_count) {
-                throw new \App\Exceptions\InsufficientSeatsException(
+                throw new InsufficientSeatsException(
                     'Not enough seats available to accept this booking.'
                 );
             }
@@ -187,7 +188,7 @@ class BookingController extends Controller
             abort(403, 'You are not the host of this trip.');
         }
 
-        if (!$booking->canBeRejected()) {
+        if (! $booking->canBeRejected()) {
             return response()->json([
                 'message' => 'This booking cannot be rejected in its current status.',
             ], 422);
@@ -215,7 +216,7 @@ class BookingController extends Controller
             abort(403, 'You do not have permission to cancel this booking.');
         }
 
-        if (!$booking->canBeCancelled()) {
+        if (! $booking->canBeCancelled()) {
             return response()->json([
                 'message' => 'This booking cannot be cancelled in its current status.',
             ], 422);
@@ -252,7 +253,7 @@ class BookingController extends Controller
             abort(403, 'You are not the host of this trip.');
         }
 
-        if (!$booking->canBeCompleted()) {
+        if (! $booking->canBeCompleted()) {
             return response()->json([
                 'message' => 'This booking cannot be completed in its current status.',
             ], 422);

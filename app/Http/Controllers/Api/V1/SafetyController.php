@@ -39,7 +39,7 @@ class SafetyController extends Controller
             })
             ->first();
 
-        if (!$booking) {
+        if (! $booking) {
             return response()->json([
                 'message' => 'The specified booking does not connect you with the reported user.',
             ], 422);

@@ -11,10 +11,13 @@ class WalletTransaction extends Model
     use HasFactory;
 
     const DIRECTION_CREDIT = 'credit';
+
     const DIRECTION_DEBIT = 'debit';
 
     const STATUS_COMPLETED = 'completed';
+
     const STATUS_PENDING = 'pending';
+
     const STATUS_FAILED = 'failed';
 
     protected $fillable = [

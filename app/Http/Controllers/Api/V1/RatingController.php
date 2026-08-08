@@ -39,7 +39,7 @@ class RatingController extends Controller
             })
             ->first();
 
-        if (!$booking) {
+        if (! $booking) {
             return response()->json([
                 'message' => 'The specified booking does not connect you with the reviewee, or is not completed.',
             ], 422);

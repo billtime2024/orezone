@@ -15,15 +15,15 @@ class UserProfileResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            'bio'                     => $this->bio,
-            'gender'                  => $this->gender,
-            'date_of_birth'           => $this->date_of_birth,
-            'address'                 => $this->address,
-            'city'                    => $this->city,
-            'country'                 => $this->country,
-            'latitude'                => $this->latitude,
-            'longitude'               => $this->longitude,
-            'emergency_contact_name'  => $this->emergency_contact_name,
+            'bio' => $this->bio,
+            'gender' => $this->gender,
+            'date_of_birth' => $this->date_of_birth,
+            'address' => $this->address,
+            'city' => $this->city,
+            'country' => $this->country,
+            'latitude' => $this->latitude,
+            'longitude' => $this->longitude,
+            'emergency_contact_name' => $this->emergency_contact_name,
             'emergency_contact_phone' => $this->emergency_contact_phone,
         ];
     }

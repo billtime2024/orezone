@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Api\V1;
 
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateProfileRequest extends FormRequest
@@ -17,21 +18,21 @@ class UpdateProfileRequest extends FormRequest
     /**
      * Get the validation rules that apply to the request.
      *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
         return [
-            'name'                    => 'sometimes|string|max:255',
-            'bio'                     => 'sometimes|nullable|string|max:1000',
-            'gender'                  => 'sometimes|nullable|in:male,female,other,prefer_not_to_say',
-            'date_of_birth'           => 'sometimes|nullable|date|before:today',
-            'address'                 => 'sometimes|nullable|string|max:500',
-            'city'                    => 'sometimes|nullable|string|max:100',
-            'country'                 => 'sometimes|nullable|string|max:2',
-            'latitude'                => 'sometimes|nullable|numeric|between:-90,90',
-            'longitude'               => 'sometimes|nullable|numeric|between:-180,180',
-            'emergency_contact_name'  => 'sometimes|nullable|string|max:255',
+            'name' => 'sometimes|string|max:255',
+            'bio' => 'sometimes|nullable|string|max:1000',
+            'gender' => 'sometimes|nullable|in:male,female,other,prefer_not_to_say',
+            'date_of_birth' => 'sometimes|nullable|date|before:today',
+            'address' => 'sometimes|nullable|string|max:500',
+            'city' => 'sometimes|nullable|string|max:100',
+            'country' => 'sometimes|nullable|string|max:2',
+            'latitude' => 'sometimes|nullable|numeric|between:-90,90',
+            'longitude' => 'sometimes|nullable|numeric|between:-180,180',
+            'emergency_contact_name' => 'sometimes|nullable|string|max:255',
             'emergency_contact_phone' => 'sometimes|nullable|string|max:15',
         ];
     }
