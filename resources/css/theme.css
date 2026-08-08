@@ -1,0 +1,50 @@
+:root {
+  --orezone-primary: #2E7D5B;
+  --orezone-primary-hover: #236B4A;
+  --orezone-primary-light: rgba(46, 125, 91, 0.1);
+  --orezone-accent: #E8734A;
+  --orezone-accent-hover: #d4623d;
+  --orezone-bg: #FFFFFF;
+  --orezone-surface: #f8f9fa;
+  --orezone-text: #1a1a1a;
+  --orezone-text-secondary: #666666;
+  --orezone-border: #e9ecef;
+  --orezone-sidebar-bg: #1a2332;
+  --orezone-sidebar-text: #adb5bd;
+  --orezone-sidebar-active: rgba(255,255,255,0.1);
+  --orezone-radius: 12px;
+  --orezone-radius-sm: 8px;
+  --orezone-radius-pill: 50px;
+  --orezone-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  --orezone-shadow-lg: 0 4px 16px rgba(0,0,0,0.12);
+}
+
+/* Override Bootstrap --bs-primary so var(--bs-primary) resolves to our green */
+:root {
+  --bs-primary: #2E7D5B;
+  --bs-primary-rgb: 46, 125, 91;
+  --bs-primary-bg-subtle: rgba(46, 125, 91, 0.1);
+  --bs-primary-text-emphasis: #2E7D5B;
+  --bs-link-color: #2E7D5B;
+  --bs-link-hover-color: #236B4A;
+}
+
+/* Override Bootstrap primary */
+.btn-primary { background-color: var(--orezone-primary); border-color: var(--orezone-primary); border-radius: var(--orezone-radius-pill); }
+.btn-primary:hover { background-color: var(--orezone-primary-hover); border-color: var(--orezone-primary-hover); }
+.btn-outline-primary { color: var(--orezone-primary); border-color: var(--orezone-primary); border-radius: var(--orezone-radius-pill); }
+.btn-outline-primary:hover { background-color: var(--orezone-primary); color: #fff; }
+
+/* Accent buttons */
+.btn-accent { background-color: var(--orezone-accent); border-color: var(--orezone-accent); color: #fff; border-radius: var(--orezone-radius-pill); }
+.btn-accent:hover { background-color: var(--orezone-accent-hover); border-color: var(--orezone-accent-hover); color: #fff; }
+
+/* Cards */
+.card { border: 1px solid var(--orezone-border); border-radius: var(--orezone-radius); box-shadow: var(--orezone-shadow); }
+.card:hover { box-shadow: var(--orezone-shadow-lg); }
+
+/* Bootstrap color overrides */
+.bg-primary { background-color: var(--orezone-primary) !important; }
+.text-primary { color: var(--orezone-primary) !important; }
+.border-primary { border-color: var(--orezone-primary) !important; }
+.badge.bg-primary { background-color: var(--orezone-primary) !important; }

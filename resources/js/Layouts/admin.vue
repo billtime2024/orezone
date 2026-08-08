@@ -206,7 +206,7 @@ export default {
                     <h5 class="mb-0 fw-semibold text-dark">orezone Admin</h5>
                 </div>
                 <div class="d-flex align-items-center gap-3">
-                    <span class="badge bg-primary-subtle text-primary">
+                    <span class="badge bg-primary-subtle text-primary" style="background-color: var(--orezone-primary-light) !important; color: var(--orezone-primary) !important;">
                         <i class="ri-admin-line me-1"></i> Administrator
                     </span>
 
@@ -218,8 +218,8 @@ export default {
                             style="border: 1px solid #e0e0e0;"
                         >
                             <div
-                                class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center"
-                                style="width: 32px; height: 32px; font-size: 14px;"
+                                class="rounded-circle text-white d-flex align-items-center justify-content-center"
+                                style="width: 32px; height: 32px; font-size: 14px; background-color: var(--orezone-primary);"
                             >
                                 {{ user?.name ? user.name.charAt(0).toUpperCase() : 'A' }}
                             </div>

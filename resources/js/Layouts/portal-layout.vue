@@ -168,8 +168,8 @@ export default {
                             style="border: 1px solid #e0e0e0;"
                         >
                             <div
-                                class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center"
-                                style="width: 32px; height: 32px; font-size: 14px;"
+                                class="rounded-circle text-white d-flex align-items-center justify-content-center"
+                                style="width: 32px; height: 32px; font-size: 14px; background-color: var(--orezone-primary);"
                             >
                                 {{ user?.name ? user.name.charAt(0).toUpperCase() : 'U' }}
                             </div>

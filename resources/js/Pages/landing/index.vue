@@ -48,10 +48,10 @@ export default {
 
 <template>
     <Head title="orezone - Community Sharing Platform" />
-    <a href="#home" class="visually-hidden-focusable position-absolute top-0 start-0 bg-primary text-white px-3 py-2" style="z-index: 1050;">Skip to main content</a>
+    <a href="#home" class="visually-hidden-focusable position-absolute top-0 start-0 text-white px-3 py-2" style="z-index: 1050; background-color: var(--orezone-primary);">Skip to main content</a>
 
     <!-- ==================== NAVBAR ==================== -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary sticky-top shadow-sm" :class="{ 'shadow': isScrolled }">
+    <nav class="navbar navbar-expand-lg navbar-dark sticky-top shadow-sm" :class="{ 'shadow': isScrolled }" style="background-color: var(--orezone-primary);">
         <div class="container">
             <a class="navbar-brand fw-bold fs-4 text-white" href="#home">orezone</a>
             <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#orezoneNav" aria-controls="orezoneNav">
@@ -85,7 +85,7 @@ export default {
     <main id="main-content">
 
     <!-- ==================== HERO ==================== -->
-    <section id="home" class="bg-primary text-white position-relative overflow-hidden">
+    <section id="home" class="text-white position-relative overflow-hidden" style="background-color: var(--orezone-primary);">
         <div class="container py-5 position-relative" style="z-index: 2;">
             <div class="row align-items-center py-5" style="min-height: 50vh">
                 <div class="col-lg-7 mb-5 mb-lg-0">
@@ -468,7 +468,7 @@ export default {
     </section>
 
     <!-- ==================== FINAL CTA ==================== -->
-    <section class="py-5 bg-primary text-white position-relative overflow-hidden">
+    <section class="py-5 text-white position-relative overflow-hidden" style="background-color: var(--orezone-primary);">
         <div class="container py-5 text-center position-relative" style="z-index: 2;">
             <h2 class="display-5 fw-bold mb-4">Join the Community</h2>
             <p class="lead mb-4 opacity-90 mx-auto" style="max-width: 650px;">

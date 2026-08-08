@@ -15,9 +15,9 @@ export default {
 
     <PortalLayout>
         <!-- Welcome Section -->
-        <div class="bg-primary text-white rounded-4 p-4 mb-4">
+        <div class="text-white rounded-4 p-4 mb-4" style="background-color: var(--orezone-primary);">
             <div class="d-flex align-items-center gap-3">
-                <span class="bg-white text-primary rounded-circle d-inline-flex align-items-center justify-content-center fw-bold" style="width: 56px; height: 56px; font-size: 22px;">
+                <span class="bg-white rounded-circle d-inline-flex align-items-center justify-content-center fw-bold" style="width: 56px; height: 56px; font-size: 22px; color: var(--orezone-primary);">
                     {{ user.name ? user.name.charAt(0).toUpperCase() : 'U' }}
                 </span>
                 <div>

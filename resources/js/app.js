@@ -2,6 +2,7 @@ import './bootstrap';
 import '../scss/config/modern/app.scss';
 import '@vueform/slider/themes/default.css';
 import '../scss/mermaid.min.css';
+import '../css/theme.css';
 
 import { createApp, h } from 'vue';
 import { createInertiaApp, Link, Head } from '@inertiajs/vue3';
