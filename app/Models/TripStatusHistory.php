@@ -10,6 +10,8 @@ class TripStatusHistory extends Model
 {
     use HasFactory;
 
+    protected $table = 'trip_status_history';
+
     protected $fillable = [
         'trip_id',
         'status',

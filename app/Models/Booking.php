@@ -171,7 +171,7 @@ class Booking extends Model
 
     public function canBeCancelled(): bool
     {
-        return in_array($this->status, [self::STATUS_REQUESTED, self::STATUS_CONFIRMED]);
+        return in_array($this->status, [self::STATUS_REQUESTED, self::STATUS_ACCEPTED, self::STATUS_CONFIRMED]);
     }
 
     public function canBeCompleted(): bool

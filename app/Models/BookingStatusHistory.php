@@ -10,6 +10,8 @@ class BookingStatusHistory extends Model
 {
     use HasFactory;
 
+    protected $table = 'booking_status_history';
+
     protected $fillable = [
         'booking_id',
         'status',

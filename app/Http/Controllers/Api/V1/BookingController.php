@@ -2,108 +2,49 @@
 
 namespace App\Http\Controllers\Api\V1;
 
-use App\Exceptions\InsufficientSeatsException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\StoreBookingRequest;
 use App\Http\Resources\Api\V1\BookingResource;
 use App\Models\Booking;
 use App\Models\Trip;
+use App\Services\RideSharing\BookingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
-use Illuminate\Support\Facades\DB;
+use InvalidArgumentException;
 
 class BookingController extends Controller
 {
+    public function __construct(
+        private readonly BookingService $bookingService,
+    ) {}
+
     /**
      * POST /trips/{trip}/bookings — Create a booking.
      * instant → confirmed, request_approval → requested.
      */
     public function store(StoreBookingRequest $request, Trip $trip): JsonResponse
     {
-        $user = $request->user();
+        $this->authorize('create', [Booking::class, $trip]);
 
-        // Trip must be published
-        if ($trip->status !== 'published') {
+        try {
+            $booking = $this->bookingService->createBooking(
+                $trip,
+                $request->user(),
+                $request->validated()
+            );
+
+            $booking->load(['traveler', 'pickupStop', 'dropStop', 'trip']);
+
             return response()->json([
-                'message' => 'This trip is not available for booking.',
+                'message' => 'Booking created successfully.',
+                'data' => new BookingResource($booking),
+            ], 201);
+        } catch (InvalidArgumentException $e) {
+            return response()->json([
+                'message' => $e->getMessage(),
             ], 422);
         }
-
-        // Cannot book own trip
-        if ($trip->host_id === $user->id) {
-            return response()->json([
-                'message' => 'You cannot book your own trip.',
-            ], 422);
-        }
-
-        // Idempotency check
-        if ($request->filled('idempotency_key')) {
-            $existing = Booking::where('idempotency_key', $request->input('idempotency_key'))->first();
-            if ($existing) {
-                return response()->json([
-                    'message' => 'This booking has already been submitted.',
-                    'data' => new BookingResource($existing),
-                ], 200);
-            }
-        }
-
-        $seatCount = $request->validated('seat_count');
-
-        // Validate stops belong to this trip (only if provided)
-        if ($request->filled('pickup_stop_id') || $request->filled('drop_stop_id')) {
-            $validStopIds = $trip->stops()->pluck('id')->toArray();
-            if ($request->filled('pickup_stop_id') && ! in_array($request->validated('pickup_stop_id'), $validStopIds)) {
-                return response()->json([
-                    'message' => 'Selected pickup stop does not belong to this trip.',
-                ], 422);
-            }
-            if ($request->filled('drop_stop_id') && ! in_array($request->validated('drop_stop_id'), $validStopIds)) {
-                return response()->json([
-                    'message' => 'Selected drop-off stop does not belong to this trip.',
-                ], 422);
-            }
-        }
-
-        // Seat reservation inside a transaction with row-level lock
-        $booking = DB::transaction(function () use ($trip, $user, $request, $seatCount) {
-            $trip = Trip::lockForUpdate()->find($trip->id);
-
-            if ($trip->available_seats < $seatCount) {
-                throw new InsufficientSeatsException(
-                    'Not enough seats available. Available: '.$trip->available_seats
-                );
-            }
-
-            $bookingMode = $trip->booking_mode;
-
-            // Only decrement seats immediately for instant bookings.
-            // Request-approval bookings decrement seats on accept() only.
-            if ($bookingMode === 'instant') {
-                $trip->decrement('available_seats', $seatCount);
-            }
-
-            $status = $bookingMode === 'instant' ? 'confirmed' : 'requested';
-
-            return Booking::create([
-                'trip_id' => $trip->id,
-                'traveler_id' => $user->id,
-                'host_id' => $trip->host_id,
-                'pickup_stop_id' => $request->validated('pickup_stop_id'),
-                'drop_stop_id' => $request->validated('drop_stop_id'),
-                'seat_count' => $seatCount,
-                'status' => $status,
-                'idempotency_key' => $request->input('idempotency_key'),
-                'notes' => $request->input('notes'),
-            ]);
-        });
-
-        $booking->load(['traveler', 'pickupStop', 'dropStop', 'trip']);
-
-        return response()->json([
-            'message' => 'Booking created successfully.',
-            'data' => new BookingResource($booking),
-        ], 201);
     }
 
     /**
@@ -111,6 +52,8 @@ class BookingController extends Controller
      */
     public function index(Request $request): AnonymousResourceCollection
     {
+        $this->authorize('viewAny', Booking::class);
+
         $query = $request->user()->bookings()
             ->with(['trip.host', 'trip.vehicle', 'pickupStop', 'dropStop']);
 
@@ -129,10 +72,7 @@ class BookingController extends Controller
      */
     public function show(Request $request, Booking $booking): BookingResource
     {
-        if ($booking->traveler_id !== $request->user()->id
-            && $booking->trip->host_id !== $request->user()->id) {
-            abort(403, 'You do not have access to this booking.');
-        }
+        $this->authorize('view', $booking);
 
         $booking->load(['trip.host', 'trip.vehicle.category', 'trip.stops', 'traveler', 'pickupStop', 'dropStop']);
 
@@ -144,37 +84,22 @@ class BookingController extends Controller
      */
     public function accept(Request $request, Booking $booking): JsonResponse
     {
-        $trip = $booking->trip;
+        $this->authorize('accept', $booking);
 
-        if ($trip->host_id !== $request->user()->id) {
-            abort(403, 'You are not the host of this trip.');
-        }
+        try {
+            $booking = $this->bookingService->acceptBooking($booking, $request->user());
 
-        if (! $booking->canBeAccepted()) {
+            $booking->load(['traveler', 'pickupStop', 'dropStop', 'trip']);
+
             return response()->json([
-                'message' => 'This booking cannot be accepted in its current status.',
+                'message' => 'Booking accepted successfully.',
+                'data' => new BookingResource($booking),
+            ]);
+        } catch (InvalidArgumentException $e) {
+            return response()->json([
+                'message' => $e->getMessage(),
             ], 422);
         }
-
-        DB::transaction(function () use ($booking, $trip) {
-            $trip = Trip::lockForUpdate()->find($trip->id);
-
-            if ($trip->available_seats < $booking->seat_count) {
-                throw new InsufficientSeatsException(
-                    'Not enough seats available to accept this booking.'
-                );
-            }
-
-            $trip->decrement('available_seats', $booking->seat_count);
-            $booking->update(['status' => 'confirmed']);
-        });
-
-        $booking->load(['traveler', 'pickupStop', 'dropStop', 'trip']);
-
-        return response()->json([
-            'message' => 'Booking accepted successfully.',
-            'data' => new BookingResource($booking),
-        ]);
     }
 
     /**
@@ -182,26 +107,22 @@ class BookingController extends Controller
      */
     public function reject(Request $request, Booking $booking): JsonResponse
     {
-        $trip = $booking->trip;
+        $this->authorize('reject', $booking);
 
-        if ($trip->host_id !== $request->user()->id) {
-            abort(403, 'You are not the host of this trip.');
-        }
+        try {
+            $booking = $this->bookingService->rejectBooking($booking, $request->user());
 
-        if (! $booking->canBeRejected()) {
+            $booking->load(['traveler', 'pickupStop', 'dropStop', 'trip']);
+
             return response()->json([
-                'message' => 'This booking cannot be rejected in its current status.',
+                'message' => 'Booking rejected successfully.',
+                'data' => new BookingResource($booking),
+            ]);
+        } catch (InvalidArgumentException $e) {
+            return response()->json([
+                'message' => $e->getMessage(),
             ], 422);
         }
-
-        $booking->update(['status' => 'rejected']);
-
-        $booking->load(['traveler', 'pickupStop', 'dropStop', 'trip']);
-
-        return response()->json([
-            'message' => 'Booking rejected successfully.',
-            'data' => new BookingResource($booking),
-        ]);
     }
 
     /**
@@ -209,37 +130,22 @@ class BookingController extends Controller
      */
     public function cancel(Request $request, Booking $booking): JsonResponse
     {
-        $user = $request->user();
+        $this->authorize('cancel', $booking);
 
-        // Either the traveler or the host can cancel
-        if ($booking->traveler_id !== $user->id && $booking->trip->host_id !== $user->id) {
-            abort(403, 'You do not have permission to cancel this booking.');
-        }
+        try {
+            $booking = $this->bookingService->cancelBooking($booking, $request->user());
 
-        if (! $booking->canBeCancelled()) {
+            $booking->load(['traveler', 'pickupStop', 'dropStop', 'trip']);
+
             return response()->json([
-                'message' => 'This booking cannot be cancelled in its current status.',
+                'message' => 'Booking cancelled successfully.',
+                'data' => new BookingResource($booking),
+            ]);
+        } catch (InvalidArgumentException $e) {
+            return response()->json([
+                'message' => $e->getMessage(),
             ], 422);
         }
-
-        $wasConfirmed = $booking->status === 'confirmed';
-
-        DB::transaction(function () use ($booking, $wasConfirmed) {
-            $booking->update(['status' => 'cancelled']);
-
-            // Restore seats only if the booking was confirmed
-            if ($wasConfirmed) {
-                Trip::where('id', $booking->trip_id)
-                    ->increment('available_seats', $booking->seat_count);
-            }
-        });
-
-        $booking->load(['traveler', 'pickupStop', 'dropStop', 'trip']);
-
-        return response()->json([
-            'message' => 'Booking cancelled successfully.',
-            'data' => new BookingResource($booking),
-        ]);
     }
 
     /**
@@ -247,24 +153,21 @@ class BookingController extends Controller
      */
     public function complete(Request $request, Booking $booking): JsonResponse
     {
-        $trip = $booking->trip;
+        $this->authorize('complete', $booking);
 
-        if ($trip->host_id !== $request->user()->id) {
-            abort(403, 'You are not the host of this trip.');
-        }
+        try {
+            $booking = $this->bookingService->completeBooking($booking, $request->user());
 
-        if (! $booking->canBeCompleted()) {
+            $booking->load(['traveler', 'pickupStop', 'dropStop', 'trip']);
+
             return response()->json([
-                'message' => 'This booking cannot be completed in its current status.',
+                'message' => 'Booking marked as completed.',
+                'data' => new BookingResource($booking),
+            ]);
+        } catch (InvalidArgumentException $e) {
+            return response()->json([
+                'message' => $e->getMessage(),
             ], 422);
         }
-
-        $booking->update(['status' => 'completed']);
-        $booking->load(['traveler', 'pickupStop', 'dropStop', 'trip']);
-
-        return response()->json([
-            'message' => 'Booking marked as completed.',
-            'data' => new BookingResource($booking),
-        ]);
     }
 }

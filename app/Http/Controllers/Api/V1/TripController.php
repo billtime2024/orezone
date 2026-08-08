@@ -7,21 +7,28 @@ use App\Http\Requests\Api\V1\StoreTripRequest;
 use App\Http\Requests\Api\V1\UpdateTripRequest;
 use App\Http\Resources\Api\V1\BookingResource;
 use App\Http\Resources\Api\V1\TripResource;
-use App\Models\Booking;
 use App\Models\Trip;
 use App\Models\Vehicle;
+use App\Services\RideSharing\TripService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\DB;
+use InvalidArgumentException;
 
 class TripController extends Controller
 {
+    public function __construct(
+        private readonly TripService $tripService,
+    ) {}
+
     /**
      * GET /trips/my — User's own trips, filterable by status.
      */
     public function index(Request $request): AnonymousResourceCollection
     {
+        $this->authorize('viewAny', Trip::class);
+
         $query = $request->user()->trips()->with(['vehicle.category', 'stops']);
 
         if ($request->filled('status')) {
@@ -39,24 +46,14 @@ class TripController extends Controller
      */
     public function search(Request $request): AnonymousResourceCollection
     {
-        $query = Trip::published()
-            ->with(['host', 'vehicle', 'stops'])
-            ->where('available_seats', '>', 0);
+        $filters = array_filter([
+            'origin' => $request->input('origin'),
+            'destination' => $request->input('destination'),
+            'departure_date' => $request->input('departure_date'),
+            'per_page' => $request->integer('per_page', 15),
+        ], fn ($v) => $v !== null && $v !== '');
 
-        if ($request->filled('origin')) {
-            $query->where('origin_name', 'like', '%'.$request->input('origin').'%');
-        }
-
-        if ($request->filled('destination')) {
-            $query->where('destination_name', 'like', '%'.$request->input('destination').'%');
-        }
-
-        if ($request->filled('departure_date')) {
-            $query->whereDate('departure_at', $request->input('departure_date'));
-        }
-
-        $trips = $query->orderBy('departure_at')
-            ->paginate($request->integer('per_page', 15));
+        $trips = $this->tripService->searchTrips($filters);
 
         return TripResource::collection($trips);
     }
@@ -66,35 +63,22 @@ class TripController extends Controller
      */
     public function store(StoreTripRequest $request): JsonResponse
     {
-        $user = $request->user();
+        $this->authorize('create', Trip::class);
 
-        // Verify vehicle belongs to user
-        $vehicle = Vehicle::where('id', $request->validated('vehicle_id'))
-            ->where('user_id', $user->id)
-            ->first();
+        try {
+            $trip = $this->tripService->createDraft(
+                $request->user(),
+                $request->validated()
+            );
 
-        if (! $vehicle) {
+            $trip->load(['host', 'vehicle.category', 'stops']);
+
+            return response()->json(new TripResource($trip), 201);
+        } catch (InvalidArgumentException $e) {
             return response()->json([
-                'message' => 'Vehicle does not belong to you.',
-            ], 403);
+                'message' => $e->getMessage(),
+            ], 422);
         }
-
-        $trip = Trip::create([
-            'host_id' => $user->id,
-            'vehicle_id' => $vehicle->id,
-            'origin_name' => $request->validated('origin_name'),
-            'destination_name' => $request->validated('destination_name'),
-            'departure_at' => $request->validated('departure_at'),
-            'total_seats' => $request->validated('total_seats'),
-            'available_seats' => $request->validated('total_seats'),
-            'booking_mode' => $request->validated('booking_mode', 'instant'),
-            'notes' => $request->validated('notes'),
-            'status' => 'draft',
-        ]);
-
-        $trip->load(['host', 'vehicle.category', 'stops']);
-
-        return response()->json(new TripResource($trip), 201);
     }
 
     /**
@@ -102,6 +86,8 @@ class TripController extends Controller
      */
     public function show(Trip $trip): TripResource
     {
+        $this->authorize('view', $trip);
+
         $trip->load(['host', 'vehicle.category', 'stops', 'bookings']);
 
         return new TripResource($trip);
@@ -112,15 +98,7 @@ class TripController extends Controller
      */
     public function update(UpdateTripRequest $request, Trip $trip): JsonResponse
     {
-        if ($trip->host_id !== $request->user()->id) {
-            abort(403, 'This trip does not belong to you.');
-        }
-
-        if (! $trip->canBePublished() && $trip->status !== 'draft') {
-            return response()->json([
-                'message' => 'Only draft trips can be updated.',
-            ], 422);
-        }
+        $this->authorize('update', $trip);
 
         $data = $request->validated();
 
@@ -164,23 +142,22 @@ class TripController extends Controller
      */
     public function publish(Request $request, Trip $trip): JsonResponse
     {
-        if ($trip->host_id !== $request->user()->id) {
-            abort(403, 'This trip does not belong to you.');
-        }
+        $this->authorize('publish', $trip);
 
-        if (! $trip->canBePublished()) {
+        try {
+            $trip = $this->tripService->publishTrip($trip, $request->user());
+
+            $trip->load(['host', 'vehicle.category', 'stops']);
+
             return response()->json([
-                'message' => 'Only draft trips can be published.',
+                'message' => 'Trip published successfully.',
+                'data' => new TripResource($trip),
+            ]);
+        } catch (InvalidArgumentException $e) {
+            return response()->json([
+                'message' => $e->getMessage(),
             ], 422);
         }
-
-        $trip->update(['status' => 'published']);
-        $trip->load(['host', 'vehicle.category', 'stops']);
-
-        return response()->json([
-            'message' => 'Trip published successfully.',
-            'data' => new TripResource($trip),
-        ]);
     }
 
     /**
@@ -188,45 +165,22 @@ class TripController extends Controller
      */
     public function cancel(Request $request, Trip $trip): JsonResponse
     {
-        if ($trip->host_id !== $request->user()->id) {
-            abort(403, 'This trip does not belong to you.');
-        }
+        $this->authorize('cancel', $trip);
 
-        if (! $trip->canBeCancelled()) {
+        try {
+            $trip = $this->tripService->cancelTrip($trip, $request->user());
+
+            $trip->load(['host', 'vehicle.category', 'stops']);
+
             return response()->json([
-                'message' => 'This trip cannot be cancelled in its current status.',
+                'message' => 'Trip cancelled successfully.',
+                'data' => new TripResource($trip),
+            ]);
+        } catch (InvalidArgumentException $e) {
+            return response()->json([
+                'message' => $e->getMessage(),
             ], 422);
         }
-
-        DB::transaction(function () use ($trip) {
-            $trip->update(['status' => 'cancelled']);
-
-            // Cancel all pending/requested bookings — no seat restore (seats reserved on accept only)
-            $requestedBookings = $trip->bookings()
-                ->where('status', 'requested')
-                ->get();
-
-            foreach ($requestedBookings as $booking) {
-                $booking->update(['status' => 'cancelled']);
-            }
-
-            // Cancel confirmed bookings and restore seats
-            $confirmedBookings = $trip->bookings()
-                ->where('status', 'confirmed')
-                ->get();
-
-            foreach ($confirmedBookings as $booking) {
-                $trip->increment('available_seats', $booking->seat_count);
-                $booking->update(['status' => 'cancelled']);
-            }
-        });
-
-        $trip->load(['host', 'vehicle.category', 'stops']);
-
-        return response()->json([
-            'message' => 'Trip cancelled successfully.',
-            'data' => new TripResource($trip),
-        ]);
     }
 
     /**
@@ -234,23 +188,22 @@ class TripController extends Controller
      */
     public function start(Request $request, Trip $trip): JsonResponse
     {
-        if ($trip->host_id !== $request->user()->id) {
-            abort(403, 'This trip does not belong to you.');
-        }
+        $this->authorize('start', $trip);
 
-        if (! $trip->canBeStarted()) {
+        try {
+            $trip = $this->tripService->startTrip($trip, $request->user());
+
+            $trip->load(['host', 'vehicle.category', 'stops']);
+
             return response()->json([
-                'message' => 'Trip can only be started when it is published and fully booked.',
+                'message' => 'Trip started successfully.',
+                'data' => new TripResource($trip),
+            ]);
+        } catch (InvalidArgumentException $e) {
+            return response()->json([
+                'message' => $e->getMessage(),
             ], 422);
         }
-
-        $trip->update(['status' => 'in_progress']);
-        $trip->load(['host', 'vehicle.category', 'stops']);
-
-        return response()->json([
-            'message' => 'Trip started successfully.',
-            'data' => new TripResource($trip),
-        ]);
     }
 
     /**
@@ -258,32 +211,22 @@ class TripController extends Controller
      */
     public function complete(Request $request, Trip $trip): JsonResponse
     {
-        if ($trip->host_id !== $request->user()->id) {
-            abort(403, 'This trip does not belong to you.');
-        }
+        $this->authorize('complete', $trip);
 
-        if (! $trip->canBeCompleted()) {
+        try {
+            $trip = $this->tripService->completeTrip($trip, $request->user());
+
+            $trip->load(['host', 'vehicle.category', 'stops']);
+
             return response()->json([
-                'message' => 'Only in-progress trips can be completed.',
+                'message' => 'Trip completed successfully.',
+                'data' => new TripResource($trip),
+            ]);
+        } catch (InvalidArgumentException $e) {
+            return response()->json([
+                'message' => $e->getMessage(),
             ], 422);
         }
-
-        DB::transaction(function () use ($trip) {
-            $trip->update([
-                'status' => 'completed',
-                'arrival_at' => now(),
-            ]);
-
-            // Mark confirmed bookings as completed
-            $trip->confirmedBookings()->update(['status' => 'completed']);
-        });
-
-        $trip->load(['host', 'vehicle.category', 'stops']);
-
-        return response()->json([
-            'message' => 'Trip completed successfully.',
-            'data' => new TripResource($trip),
-        ]);
     }
 
     /**
@@ -291,9 +234,7 @@ class TripController extends Controller
      */
     public function bookingRequests(Request $request, Trip $trip): AnonymousResourceCollection
     {
-        if ($trip->host_id !== $request->user()->id) {
-            abort(403, 'This trip does not belong to you.');
-        }
+        $this->authorize('view', $trip);
 
         $bookings = $trip->bookings()
             ->with(['traveler', 'pickupStop', 'dropStop'])

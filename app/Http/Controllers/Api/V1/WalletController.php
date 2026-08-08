@@ -5,22 +5,24 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Api\V1\WalletResource;
 use App\Http\Resources\Api\V1\WalletTransactionResource;
-use App\Models\Wallet;
+use App\Services\RideSharing\WalletService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class WalletController extends Controller
 {
+    public function __construct(
+        private readonly WalletService $walletService,
+    ) {}
+
     /**
      * GET /wallet — Get or create user wallet.
      */
     public function show(Request $request): JsonResponse
     {
-        $wallet = Wallet::firstOrCreate(
-            ['user_id' => $request->user()->id],
-            ['currency' => 'INR']
-        );
+        // Wallet is created/retrieved for the authenticated user only — ownership is implicit
+        $wallet = $this->walletService->getOrCreateWallet($request->user());
 
         return response()->json([
             'data' => new WalletResource($wallet),
@@ -32,18 +34,14 @@ class WalletController extends Controller
      */
     public function transactions(Request $request): AnonymousResourceCollection
     {
-        $wallet = Wallet::firstOrCreate(
-            ['user_id' => $request->user()->id],
-            ['currency' => 'INR']
-        );
+        $wallet = $this->walletService->getOrCreateWallet($request->user());
 
-        $query = $wallet->transactions()->orderByDesc('created_at');
+        $filters = array_filter([
+            'type' => $request->input('type'),
+            'per_page' => $request->integer('per_page', 20),
+        ], fn ($v) => $v !== null && $v !== '');
 
-        if ($request->filled('type')) {
-            $query->where('type', $request->input('type'));
-        }
-
-        $transactions = $query->paginate($request->integer('per_page', 20));
+        $transactions = $this->walletService->getTransactions($wallet, $filters);
 
         return WalletTransactionResource::collection($transactions);
     }

@@ -41,6 +41,11 @@ Route::middleware(['auth', 'can:access-admin'])->controller(OrezoneController::c
     Route::get('/admin/sos', 'admin_sos')->name('admin.sos');
     Route::get('/admin/profile', 'admin_profile')->name('admin.profile');
     Route::get('/admin/change-password', 'admin_change_password')->name('admin.change-password');
+    Route::get('/admin/verifications/{id}', 'admin_verification_show')->name('admin.verifications.show');
+    Route::get('/admin/trips/{id}', 'admin_trip_show')->name('admin.trips.show');
+    Route::get('/admin/bookings/{id}', 'admin_booking_show')->name('admin.bookings.show');
+    Route::get('/admin/wallets/{id}', 'admin_wallet_show')->name('admin.wallets.show');
+    Route::get('/admin/settings', 'admin_settings')->name('admin.settings');
 });
 
 // Admin Rental Module Routes

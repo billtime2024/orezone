@@ -248,4 +248,53 @@ class OrezoneController extends Controller
             'user' => Auth::user(),
         ]);
     }
+
+    /**
+     * Admin: Verification request detail
+     */
+    public function admin_verification_show($id)
+    {
+        $request = VerificationRequest::with(['user', 'documents', 'reviewer'])->findOrFail($id);
+        return Inertia::render('admin/verifications/show', ['verificationRequest' => $request]);
+    }
+
+    /**
+     * Admin: Trip detail with status history
+     */
+    public function admin_trip_show($id)
+    {
+        $trip = Trip::with(['host', 'vehicle.category', 'stops', 'statusHistory.changer', 'bookings.traveler'])
+            ->withCount('bookings')
+            ->findOrFail($id);
+        return Inertia::render('admin/trips/show', ['trip' => $trip]);
+    }
+
+    /**
+     * Admin: Booking detail with timeline
+     */
+    public function admin_booking_show($id)
+    {
+        $booking = Booking::with(['trip.host', 'traveler', 'host', 'statusHistory.changer'])
+            ->findOrFail($id);
+        return Inertia::render('admin/bookings/show', ['booking' => $booking]);
+    }
+
+    /**
+     * Admin: Wallet detail with transactions
+     */
+    public function admin_wallet_show($id)
+    {
+        $wallet = Wallet::with('user')->findOrFail($id);
+        $transactions = $wallet->transactions()->with('user')->latest()->paginate(20);
+        return Inertia::render('admin/wallets/show', ['wallet' => $wallet, 'transactions' => $transactions]);
+    }
+
+    /**
+     * Admin: Platform settings
+     */
+    public function admin_settings()
+    {
+        $settings = \Illuminate\Support\Facades\DB::table('admin_settings')->get()->groupBy('group');
+        return Inertia::render('admin/settings/index', ['settings' => $settings]);
+    }
 }
