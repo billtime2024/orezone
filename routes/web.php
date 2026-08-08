@@ -44,9 +44,42 @@ Route::middleware(['auth', 'can:access-admin'])->controller(OrezoneController::c
 
 // Portal routes — authenticated users only
 Route::middleware(['auth'])->controller(PortalController::class)->group(function () {
+    // Dashboard
     Route::get('/portal', 'index')->name('portal.index');
+
+    // Vehicle routes
+    Route::get('/portal/vehicles', 'vehicles')->name('portal.vehicles');
+    Route::get('/portal/vehicles/create', 'createVehicle')->name('portal.vehicles.create');
+    Route::post('/portal/vehicles', 'storeVehicle')->name('portal.vehicles.store');
+    Route::get('/portal/vehicles/{vehicle}', 'showVehicle')->name('portal.vehicles.show');
+    Route::get('/portal/vehicles/{vehicle}/edit', 'editVehicle')->name('portal.vehicles.edit');
+    Route::put('/portal/vehicles/{vehicle}', 'updateVehicle')->name('portal.vehicles.update');
+    Route::delete('/portal/vehicles/{vehicle}', 'destroyVehicle')->name('portal.vehicles.destroy');
+    Route::post('/portal/vehicles/{vehicle}/verify', 'submitVehicleVerification')->name('portal.vehicles.verify');
+
+    // Trip routes
     Route::get('/portal/trips', 'trips')->name('portal.trips');
+    Route::get('/portal/trips/search', 'searchTrips')->name('portal.trips.search');
+    Route::get('/portal/trips/create', 'createTrip')->name('portal.trips.create');
+    Route::post('/portal/trips', 'storeTrip')->name('portal.trips.store');
+    Route::get('/portal/trips/{trip}', 'showTrip')->name('portal.trips.show');
+    Route::get('/portal/trips/{trip}/edit', 'editTrip')->name('portal.trips.edit');
+    Route::put('/portal/trips/{trip}', 'updateTrip')->name('portal.trips.update');
+    Route::delete('/portal/trips/{trip}', 'destroyTrip')->name('portal.trips.destroy');
+    Route::post('/portal/trips/{trip}/publish', 'publishTrip')->name('portal.trips.publish');
+    Route::post('/portal/trips/{trip}/cancel', 'cancelTrip')->name('portal.trips.cancel');
+    Route::post('/portal/trips/{trip}/start', 'startTrip')->name('portal.trips.start');
+    Route::post('/portal/trips/{trip}/complete', 'completeTrip')->name('portal.trips.complete');
+    Route::get('/portal/trips/{trip}/book', 'bookTrip')->name('portal.trips.book');
+    Route::post('/portal/trips/{trip}/bookings', 'storeBooking')->name('portal.trips.bookings.store');
+
+    // Booking routes
     Route::get('/portal/bookings', 'bookings')->name('portal.bookings');
+    Route::get('/portal/bookings/{booking}', 'showBooking')->name('portal.bookings.show');
+    Route::post('/portal/bookings/{booking}/cancel', 'cancelBooking')->name('portal.bookings.cancel');
+    Route::post('/portal/bookings/{booking}/complete', 'completeBooking')->name('portal.bookings.complete');
+
+    // Wallet & Profile
     Route::get('/portal/wallet', 'wallet')->name('portal.wallet');
     Route::get('/portal/profile', 'profile')->name('portal.profile');
 });

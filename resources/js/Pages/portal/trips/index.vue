@@ -9,6 +9,11 @@ export default {
         trips: Array,
     },
     methods: {
+        deleteTrip(id) {
+            if (confirm('Are you sure you want to delete this draft trip?')) {
+                router.delete(`/portal/trips/${id}`);
+            }
+        },
         statusBadge(status) {
             const map = {
                 draft: 'bg-secondary',
@@ -89,12 +94,31 @@ export default {
                                 <i class="ri-seat-line text-muted small"></i>
                                 <small>{{ trip.available_seats }}/{{ trip.total_seats }} seats</small>
                             </div>
+                            <div class="d-flex align-items-center gap-2" v-if="trip.vehicle">
+                                <i class="ri-car-line text-muted small"></i>
+                                <small>{{ trip.vehicle.brand }} {{ trip.vehicle.model }}</small>
+                            </div>
                         </div>
                     </div>
-                    <div class="card-footer bg-transparent border-top">
-                        <Link :href="`/portal/trips/${trip.id}`" class="btn btn-primary w-100">
-                            <i class="ri-eye-line me-1"></i> View Details
+                    <div class="card-footer bg-transparent border-top d-flex gap-2">
+                        <Link :href="`/portal/trips/${trip.id}`" class="btn btn-sm btn-outline-primary flex-fill">
+                            <i class="ri-eye-line"></i> View
                         </Link>
+                        <Link
+                            v-if="trip.status === 'draft'"
+                            :href="`/portal/trips/${trip.id}/edit`"
+                            class="btn btn-sm btn-outline-secondary flex-fill"
+                        >
+                            <i class="ri-edit-line"></i> Edit
+                        </Link>
+                        <button
+                            v-if="trip.status === 'draft'"
+                            class="btn btn-sm btn-outline-danger"
+                            @click="deleteTrip(trip.id)"
+                            title="Delete Trip"
+                        >
+                            <i class="ri-delete-bin-line"></i>
+                        </button>
                     </div>
                 </div>
             </div>

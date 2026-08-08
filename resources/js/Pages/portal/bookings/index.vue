@@ -80,6 +80,11 @@ export default {
 
                         <div class="mb-3">
                             <div class="d-flex align-items-center gap-2 mb-1">
+                                <i class="ri-calendar-line text-muted small"></i>
+                                <small v-if="booking.trip">{{ formatDate(booking.trip.departure_at) }}</small>
+                                <small v-else>—</small>
+                            </div>
+                            <div class="d-flex align-items-center gap-2 mb-1">
                                 <i class="ri-seat-line text-muted small"></i>
                                 <small>{{ booking.seat_count }} seat(s)</small>
                             </div>
@@ -87,6 +92,12 @@ export default {
                                 <i class="ri-time-line text-muted small"></i>
                                 <small>Booked {{ formatDate(booking.created_at) }}</small>
                             </div>
+                        </div>
+
+                        <!-- Trip Status -->
+                        <div v-if="booking.trip" class="mb-2">
+                            <small class="text-muted">Trip Status: </small>
+                            <span class="badge bg-light text-dark">{{ booking.trip.status }}</span>
                         </div>
                     </div>
                     <div class="card-footer bg-transparent border-top">
