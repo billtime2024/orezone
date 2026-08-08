@@ -122,7 +122,38 @@ class TripController extends Controller
             ], 422);
         }
 
-        $trip->update($request->validated());
+        $data = $request->validated();
+
+        // Validate vehicle ownership if vehicle_id is being changed
+        if (isset($data['vehicle_id'])) {
+            $vehicle = Vehicle::where('id', $data['vehicle_id'])
+                ->where('user_id', $request->user()->id)
+                ->first();
+
+            if (!$vehicle) {
+                return response()->json([
+                    'message' => 'Vehicle does not belong to you.',
+                ], 403);
+            }
+        }
+
+        // Safely recalculate available_seats when total_seats changes
+        if (isset($data['total_seats']) && $data['total_seats'] !== $trip->total_seats) {
+            $newTotal = $data['total_seats'];
+            $bookedSeats = $trip->bookings()
+                ->where('status', 'confirmed')
+                ->sum('seat_count');
+
+            if ($bookedSeats > $newTotal) {
+                return response()->json([
+                    'message' => 'Cannot reduce total_seats below the number of already confirmed seats (' . $bookedSeats . ').',
+                ], 422);
+            }
+
+            $data['available_seats'] = $newTotal - $bookedSeats;
+        }
+
+        $trip->update($data);
         $trip->load(['host', 'vehicle.category', 'stops']);
 
         return response()->json(new TripResource($trip));
@@ -170,12 +201,21 @@ class TripController extends Controller
         DB::transaction(function () use ($trip) {
             $trip->update(['status' => 'cancelled']);
 
-            // Cancel all pending/requested bookings and restore seats
-            $pendingBookings = $trip->bookings()
-                ->whereIn('status', ['requested', 'confirmed'])
+            // Cancel all pending/requested bookings — no seat restore (seats reserved on accept only)
+            $requestedBookings = $trip->bookings()
+                ->where('status', 'requested')
                 ->get();
 
-            foreach ($pendingBookings as $booking) {
+            foreach ($requestedBookings as $booking) {
+                $booking->update(['status' => 'cancelled']);
+            }
+
+            // Cancel confirmed bookings and restore seats
+            $confirmedBookings = $trip->bookings()
+                ->where('status', 'confirmed')
+                ->get();
+
+            foreach ($confirmedBookings as $booking) {
                 $trip->increment('available_seats', $booking->seat_count);
                 $booking->update(['status' => 'cancelled']);
             }

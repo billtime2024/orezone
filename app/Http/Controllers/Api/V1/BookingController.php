@@ -74,9 +74,15 @@ class BookingController extends Controller
                 );
             }
 
-            $trip->decrement('available_seats', $seatCount);
+            $bookingMode = $trip->booking_mode;
 
-            $status = $trip->booking_mode === 'instant' ? 'confirmed' : 'requested';
+            // Only decrement seats immediately for instant bookings.
+            // Request-approval bookings decrement seats on accept() only.
+            if ($bookingMode === 'instant') {
+                $trip->decrement('available_seats', $seatCount);
+            }
+
+            $status = $bookingMode === 'instant' ? 'confirmed' : 'requested';
 
             return Booking::create([
                 'trip_id' => $trip->id,

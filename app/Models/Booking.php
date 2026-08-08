@@ -19,6 +19,7 @@ class Booking extends Model
     const STATUS_ACTIVE = 'active';
     const STATUS_COMPLETED = 'completed';
     const STATUS_CANCELLED = 'cancelled';
+    const STATUS_REJECTED = 'rejected';
     const STATUS_NO_SHOW = 'no_show';
 
     const STATUSES = [
@@ -28,6 +29,7 @@ class Booking extends Model
         self::STATUS_ACTIVE,
         self::STATUS_COMPLETED,
         self::STATUS_CANCELLED,
+        self::STATUS_REJECTED,
         self::STATUS_NO_SHOW,
     ];
 
