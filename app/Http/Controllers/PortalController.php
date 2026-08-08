@@ -285,7 +285,7 @@ class PortalController extends Controller
         }
 
         $trips = $query->orderBy('departure_at')
-            ->paginate($request->integer('per_page', 15))
+            ->paginate(max(1, min(50, $request->integer('per_page', 15))))
             ->through(fn ($trip) => [
                 'id' => $trip->id,
                 'origin_name' => $trip->origin_name,
@@ -385,6 +385,13 @@ class PortalController extends Controller
     {
         $trip->load(['host', 'vehicle.category', 'stops', 'bookings.traveler', 'bookings.pickupStop', 'bookings.dropStop']);
 
+        $isHost = $trip->host_id === $request->user()->id;
+
+        // Draft trips can only be viewed by the host
+        if ($trip->status === 'draft' && ! $isHost) {
+            abort(403, 'This trip is not published yet.');
+        }
+
         $tripData = [
             'id' => $trip->id,
             'host_id' => $trip->host_id,
@@ -404,13 +411,13 @@ class PortalController extends Controller
             'host' => $trip->host ? [
                 'id' => $trip->host->id,
                 'name' => $trip->host->name,
-                'email' => $trip->host->email,
+                'email' => $isHost ? $trip->host->email : null,
             ] : null,
             'vehicle' => $trip->vehicle ? [
                 'id' => $trip->vehicle->id,
                 'brand' => $trip->vehicle->brand,
                 'model' => $trip->vehicle->model,
-                'registration_number' => $trip->vehicle->registration_number,
+                'registration_number' => $isHost ? $trip->vehicle->registration_number : null,
                 'category' => $trip->vehicle->category ? [
                     'name' => $trip->vehicle->category->name,
                 ] : null,
@@ -421,31 +428,38 @@ class PortalController extends Controller
                 'stop_order' => $s->stop_order,
                 'estimated_arrival' => $s->estimated_arrival,
             ]),
-            'bookings' => $trip->bookings->map(fn ($b) => [
-                'id' => $b->id,
-                'seat_count' => $b->seat_count,
-                'status' => $b->status,
-                'created_at' => $b->created_at,
-                'traveler' => $b->traveler ? [
-                    'id' => $b->traveler->id,
-                    'name' => $b->traveler->name,
-                    'email' => $b->traveler->email,
-                ] : null,
-                'pickup_stop' => $b->pickupStop ? [
-                    'id' => $b->pickupStop->id,
-                    'name' => $b->pickupStop->name,
-                ] : null,
-                'drop_stop' => $b->dropStop ? [
-                    'id' => $b->dropStop->id,
-                    'name' => $b->dropStop->name,
-                ] : null,
-            ]),
+            'bookings' => $isHost
+                ? $trip->bookings->map(fn ($b) => [
+                    'id' => $b->id,
+                    'seat_count' => $b->seat_count,
+                    'status' => $b->status,
+                    'created_at' => $b->created_at,
+                    'traveler' => $b->traveler ? [
+                        'id' => $b->traveler->id,
+                        'name' => $b->traveler->name,
+                        'email' => $b->traveler->email,
+                    ] : null,
+                    'pickup_stop' => $b->pickupStop ? [
+                        'id' => $b->pickupStop->id,
+                        'name' => $b->pickupStop->name,
+                    ] : null,
+                    'drop_stop' => $b->dropStop ? [
+                        'id' => $b->dropStop->id,
+                        'name' => $b->dropStop->name,
+                    ] : null,
+                ])
+                : $trip->bookings->map(fn ($b) => [
+                    'id' => $b->id,
+                    'seat_count' => $b->seat_count,
+                    'status' => $b->status,
+                    'created_at' => $b->created_at,
+                ]),
         ];
 
         return Inertia::render('portal/trips/show', [
             'user' => $request->user(),
             'trip' => $tripData,
-            'isHost' => $trip->host_id === $request->user()->id,
+            'isHost' => $isHost,
         ]);
     }
 
@@ -512,6 +526,9 @@ class PortalController extends Controller
 
         // Recalculate available seats
         $bookedSeats = $trip->bookings()->where('status', 'confirmed')->sum('seat_count');
+        if ($bookedSeats > $validated['total_seats']) {
+            return back()->withErrors(['total_seats' => 'Cannot reduce below confirmed seats ('.$bookedSeats.').']);
+        }
         $validated['available_seats'] = $validated['total_seats'] - $bookedSeats;
         $validated['vehicle_id'] = $vehicle->id;
 
@@ -678,7 +695,7 @@ class PortalController extends Controller
         }
 
         $validated = $request->validate([
-            'seat_count' => 'required|integer|min:1',
+            'seat_count' => 'required|integer|min:1|max:20',
             'pickup_stop_id' => 'nullable|exists:trip_stops,id',
             'drop_stop_id' => 'nullable|exists:trip_stops,id',
             'notes' => 'nullable|string|max:1000',
@@ -768,6 +785,8 @@ class PortalController extends Controller
      */
     public function showBooking(Request $request, Booking $booking)
     {
+        $booking->load('trip');
+
         if ($booking->traveler_id !== $request->user()->id
             && $booking->trip->host_id !== $request->user()->id) {
             abort(403, 'You do not have access to this booking.');
@@ -845,6 +864,7 @@ class PortalController extends Controller
      */
     public function cancelBooking(Request $request, Booking $booking)
     {
+        $booking->load('trip');
         $user = $request->user();
 
         if ($booking->traveler_id !== $user->id && $booking->trip->host_id !== $user->id) {
@@ -860,8 +880,8 @@ class PortalController extends Controller
         DB::transaction(function () use ($booking, $wasConfirmed) {
             $booking->update(['status' => 'cancelled']);
             if ($wasConfirmed) {
-                Trip::where('id', $booking->trip_id)
-                    ->increment('available_seats', $booking->seat_count);
+                $trip = Trip::lockForUpdate()->find($booking->trip_id);
+                $trip->increment('available_seats', $booking->seat_count);
             }
         });
 
@@ -873,6 +893,7 @@ class PortalController extends Controller
      */
     public function completeBooking(Request $request, Booking $booking)
     {
+        $booking->load('trip');
         $user = $request->user();
 
         if ($booking->trip->host_id !== $user->id) {
