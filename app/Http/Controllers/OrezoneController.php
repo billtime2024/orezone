@@ -27,6 +27,30 @@ class OrezoneController extends Controller
     }
 
     /**
+     * Admin: Dashboard with stats
+     */
+    public function admin_dashboard()
+    {
+        $stats = [
+            'total_users' => User::count(),
+            'active_users' => User::where('status', 'active')->count(),
+            'total_trips' => Trip::count(),
+            'published_trips' => Trip::where('status', 'published')->count(),
+            'total_bookings' => Booking::count(),
+            'confirmed_bookings' => Booking::where('status', 'confirmed')->count(),
+            'total_vehicles' => Vehicle::count(),
+            'pending_verifications' => VerificationRequest::where('status', 'pending')->count(),
+            'total_wallets' => Wallet::count(),
+            'total_balance' => (float) Wallet::sum('balance'),
+            'total_reviews' => Review::count(),
+            'pending_reports' => Report::where('status', 'pending')->count(),
+            'active_sos' => SosAlert::where('status', 'active')->count(),
+        ];
+
+        return Inertia::render('admin/dashboard', ['stats' => $stats]);
+    }
+
+    /**
      * Admin: Users list
      */
     public function admin_users(Request $request)

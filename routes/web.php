@@ -27,6 +27,7 @@ Route::controller(OrezoneController::class)->group(function () {
 
 // Admin routes — authenticated users with admin flag only
 Route::middleware(['auth', 'can:access-admin'])->controller(OrezoneController::class)->group(function () {
+    Route::get('/admin', 'admin_dashboard')->name('admin.dashboard');
     Route::get('/admin/users', 'admin_users')->name('admin.users');
     Route::get('/admin/verifications', 'admin_verifications')->name('admin.verifications');
     Route::get('/admin/vehicles', 'admin_vehicles')->name('admin.vehicles');
